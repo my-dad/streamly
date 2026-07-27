@@ -38,7 +38,7 @@ All prior constraints apply. Additionally, for the shipping half:
 > `startKeyFor` returns `Home`, and the `key(startKey)` in `StreamlyApp` rebuilds the host.
 > Emitting a nav effect as well would race that rebuild.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `app/src/test/java/io/github/mabrur/streamly/ui/onboarding/OnboardingViewModelTest.kt`:
 
@@ -149,12 +149,12 @@ class OnboardingViewModelTest {
 }
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `./gradlew :app:testDebugUnitTest --tests '*OnboardingViewModelTest'`
 Expected: FAIL — `Unresolved reference: OnboardingViewModel`.
 
-- [ ] **Step 3: Write the contract**
+- [x] **Step 3: Write the contract**
 
 Create `app/src/main/java/io/github/mabrur/streamly/ui/onboarding/OnboardingContract.kt`:
 
@@ -183,7 +183,7 @@ sealed interface OnboardingIntent {
 }
 ```
 
-- [ ] **Step 4: Write the ViewModel**
+- [x] **Step 4: Write the ViewModel**
 
 Create `app/src/main/java/io/github/mabrur/streamly/ui/onboarding/OnboardingViewModel.kt`:
 
@@ -275,12 +275,12 @@ class OnboardingViewModel @Inject constructor(
 }
 ```
 
-- [ ] **Step 5: Run to verify pass**
+- [x] **Step 5: Run to verify pass**
 
 Run: `./gradlew :app:testDebugUnitTest --tests '*OnboardingViewModelTest'`
 Expected: PASS — 5 tests.
 
-- [ ] **Step 6: Write the screen and route**
+- [x] **Step 6: Write the screen and route**
 
 Create `app/src/main/java/io/github/mabrur/streamly/ui/onboarding/OnboardingScreen.kt`:
 
@@ -395,7 +395,7 @@ fun OnboardingRoute(
 
 In `StreamlyApp.kt`, replace the Onboarding entry with `entry<StreamlyKey.Onboarding> { OnboardingRoute() }` and add the import.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add app/src/main/java/io/github/mabrur/streamly/ui/onboarding \
@@ -417,7 +417,7 @@ git commit -m "feat(onboarding): session persistence with guest and email entry"
 - Test: `app/src/test/java/io/github/mabrur/streamly/ui/profile/ProfileViewModelTest.kt`
 - Modify: `app/src/main/java/io/github/mabrur/streamly/ui/StreamlyApp.kt`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `app/src/test/java/io/github/mabrur/streamly/ui/profile/ProfileViewModelTest.kt`:
 
@@ -556,7 +556,7 @@ class ProfileViewModelTest {
 }
 ```
 
-- [ ] **Step 2: Write the contract**
+- [x] **Step 2: Write the contract**
 
 Create `app/src/main/java/io/github/mabrur/streamly/ui/profile/ProfileContract.kt`:
 
@@ -583,7 +583,7 @@ sealed interface ProfileIntent {
 }
 ```
 
-- [ ] **Step 3: Write the ViewModel**
+- [x] **Step 3: Write the ViewModel**
 
 Create `app/src/main/java/io/github/mabrur/streamly/ui/profile/ProfileViewModel.kt`:
 
@@ -656,7 +656,7 @@ class ProfileViewModel @Inject constructor(
 }
 ```
 
-- [ ] **Step 4: Write the screen with the confirmation dialog**
+- [x] **Step 4: Write the screen with the confirmation dialog**
 
 Create `app/src/main/java/io/github/mabrur/streamly/ui/profile/ProfileScreen.kt`:
 
@@ -787,12 +787,12 @@ fun ProfileRoute(
 
 In `StreamlyApp.kt`, replace the Profile entry with `entry<StreamlyKey.Profile> { ProfileRoute() }` and add the import. **Every placeholder is now gone** — delete `ui/placeholder/Placeholders.kt`.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run: `./gradlew :app:testDebugUnitTest`
 Expected: PASS — 45 app tests.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git rm app/src/main/java/io/github/mabrur/streamly/ui/placeholder/Placeholders.kt
@@ -801,6 +801,50 @@ git add app/src/main/java/io/github/mabrur/streamly/ui \
 git commit -m "feat(profile): profile screen with sign-out confirmation dialog" \
            -m "Co-authored-by: Claude <noreply@anthropic.com>"
 ```
+
+---
+
+## Where this stands — Tasks 1–2 done, 3–5 blocked
+
+**Branch:** `feat/onboarding-profile`, cut from `master`. Two commits.
+
+Tasks 1 and 2 were pulled forward out of plan order: Onboarding and Profile touch only
+`SessionRepository`, `CatalogRepository` and the nav host, so they build off `master`
+without any of the Player, Shorts or Downloads work. `feat/player` is parked awaiting
+device verification and is **not** merged, so none of its code is on this branch.
+
+**Verified:** `:app:compileDebugKotlin` clean; 32 app tests pass (7 Home, 4 VideoUi,
+4 SessionGating, 6 StreamlyKey, 5 Onboarding, 6 Profile), no failures. No exposed
+`MutableStateFlow`, no `data` imports in `ui`. The one remaining compiler warning
+(`TopLevelDestination.kt`, deprecated `Icons.Filled.List`) predates this branch.
+
+**Needs device verification** — session round-trip, reported as pending, never as done:
+- Onboarding → Continue as guest → lands on Home; Profile shows "Signed in as guest"
+- Sign in with a valid email → Home; an invalid one shows the inline error and does not proceed
+- **Kill and relaunch → returning user skips Onboarding entirely** (build-plan 7.3)
+- Profile → Sign out → dialog appears; Cancel does nothing; confirm returns to Onboarding
+  with the back stack cleared, not popped
+
+### Two deviations
+
+1. **`hiltViewModel()` import.** The plan writes `androidx.hilt.navigation.compose`
+   in both `OnboardingRoute` and `ProfileRoute`; that artifact is banned by D-012 for
+   pulling in Nav2. Used `androidx.hilt.lifecycle.viewmodel.compose`.
+
+2. **`ui/placeholder/Placeholders.kt` was NOT deleted** (Task 2 Step 4). The plan says
+   "every placeholder is now gone", which assumes Plans 4–6 have landed. On this branch
+   Shorts, Downloads and Player still route through `PlaceholderScreen`, so deleting it
+   breaks the build. Delete it in the last plan that replaces the final placeholder.
+
+### Why Tasks 3–5 are blocked, not skipped
+
+Task 3 audits architecture across every screen, Task 4 writes the README status list, and
+Task 5 ships the APK and demo. All three describe the finished app. Running them now would
+either assert things that are not built yet or tick README items that do not work — which
+the plan's own constraints forbid. They run last, after Shorts and Downloads.
+
+**Test-count note:** Task 2 Step 5 expects 45 app tests. That figure assumes Player (7),
+Shorts and Downloads tests are present. On this branch the correct figure is 32.
 
 ---
 
