@@ -23,8 +23,11 @@ compiles and its unit tests pass.
 - [ ] Profile + sign-out confirmation — built and unit-tested; not yet opened on a device
 - [ ] Shorts — vertical pager, pooled players — pool assignment policy done and tested; the
       pager and player pool are not built
-- [ ] Downloads — real progress, offline playback, remove — download state mapper done and
-      tested; the download stack is not built
+- [x] **Downloads — real progress, offline playback, remove** — verified on an emulator:
+      download reaches "Ready to play", progress climbs monotonically and matches the cache
+      growing on disk, the completed item **plays in airplane mode** (confirmed by
+      screenshot, not just by a rising position), Remove drops storage to zero, and a
+      force-stop and relaunch while still offline leaves the download listed and playable
 - [ ] Adaptive layout via `WindowSizeClass` — not started
 
 The device checks that gate these are listed per-feature in the corresponding plan under
@@ -124,3 +127,13 @@ This list grows as features land; it currently covers what is built.
   device checks in the Status section exist for.
 - `compileSdk` is 37 while `targetSdk` stays 36 — forced by AAR metadata on several AndroidX
   dependencies. See D-011.
+- **Eight of the eighteen catalog videos are ~500 MB to download.** They point at a test
+  stream that publishes exactly one rendition (1080p, 6.3 Mbps, ~10 min), so the bitrate cap
+  in D-010 cannot shrink them. The other ten download at roughly 130 MB. Repointing those
+  eight at a multi-rendition source is a catalog change, deliberately deferred.
+- **The download foreground-service manifest cannot be verified here.** `foregroundServiceType`
+  and `FOREGROUND_SERVICE_DATA_SYNC` are only enforced from API 34, and the emulator used
+  throughout is API 33. Both are declared and confirmed present in the merged manifest, but
+  no device that enforces them has run this build.
+- **Downloads are not resumed after a reboot.** `DownloadService.getScheduler()` returns
+  `null` deliberately — restoring them needs WorkManager, which the PRD does not ask for.

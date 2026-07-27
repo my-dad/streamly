@@ -1091,14 +1091,22 @@ with imports `android.Manifest`, `android.os.Build`, `androidx.activity.result.c
 Run: `./gradlew :app:compileDebugKotlin && ./gradlew testDebugUnitTest`
 Expected: `BUILD SUCCESSFUL`, all tests pass.
 
-- [ ] **Needs device verification — this sequence is the 30% category:**
-  1. Open a video → tap **Download**.
-  2. Go to Downloads → **progress moves and is real** (matches network activity, never jumps backwards).
-  3. Wait for "Ready to play".
-  4. **Enable airplane mode.**
-  5. Tap the completed item → **it plays**.
-  6. Tap **Remove** → the item disappears and storage-used drops.
-  7. Kill and relaunch the app → completed downloads are still listed.
+- [x] **Device verification — run on the API 33 emulator, all seven steps:**
+  1. [x] Open a video → tap **Download** → "Download started" snackbar, foreground-service
+     icon appears in the status bar.
+  2. [x] Downloads → progress moves and is real: 1% → 13% → 40% → 55% → 62%, monotonic,
+     never backwards. Cross-checked against the on-disk cache growing at ~2.8 MB/s.
+  3. [x] Reaches "Ready to play · 127.5 MB".
+  4. [x] Airplane mode enabled — `dumpsys connectivity` reports `Active default network: none`.
+  5. [x] Tap the completed item → **it plays offline**, 1:15 / 10:34 and rising, verified by
+     screenshot showing real decoded frames rather than by position alone.
+  6. [x] **Remove** → row disappears, empty state renders, storage drops 291 MB → 92 KB.
+  7. [x] Force-stop and relaunch while still offline → the completed download is still
+     listed at 127.5 MB and still plays.
+  - [x] Regression check: with the network restored, a *non*-downloaded video still streams.
+
+  **Three defects were found by this sequence, all invisible from the code** — see the
+  deviations below and D-015/D-016.
 
 - [x] **Step 4: Commit**
 
@@ -1125,9 +1133,29 @@ Suite after this task: **112 tests, 0 failures.**
 
 ---
 
+### Defects found during device verification
+
+1. **`DownloadHelper` downloaded every rendition.** Built through `DownloadHelper.Factory()`
+   with no `RenderersFactory`, it has no renderer capabilities to select against, so every
+   track resolves unsupported and `getDownloadRequest` returns an empty stream-key list —
+   which Media3 reads as "store the entire media". ~800 MB instead of ~127 MB, and the
+   Task 3 bitrate cap had no observable effect until this was fixed.
+2. **Progress never moved.** `DownloadManager.Listener` fires on state transitions only,
+   never as bytes arrive, so "observe DownloadManager into a Flow" leaves the row frozen.
+   Measured: "13% · 105.5 MB" unchanged for 24 seconds while the cache grew 263 → 291 MB.
+   Fixed by polling the index once a second while anything is in progress.
+3. **Offline playback failed with `UnknownHostException`.** A downloaded video was played
+   by its master playlist URL, which lets the track selector choose a rendition that was
+   never stored. `PlayerHolder.setMedia` now takes a video id and plays a completed
+   download through its own `DownloadRequest`.
+
+Recorded as D-015 and D-016. Suite after the fixes: **112 tests, 0 failures.**
+
+---
+
 ## Task 6: Decision record
 
-- [ ] **Step 1: Append D-009**
+- [x] **Step 1: Append D-009**
 
 ```markdown
 
@@ -1153,7 +1181,7 @@ invariant. The invariant is "repository implementations live beside the technolo
 wrap, and depend only on `:domain`."
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add docs/decisions.md
@@ -1165,11 +1193,13 @@ git commit -m "docs(decisions): record D-009 download repository placement" \
 
 ## Definition of done
 
-- [ ] `./gradlew assembleDebug` — `BUILD SUCCESSFUL`
-- [ ] 100 tests — 8 domain, 20 data, 19 designsystem, 19 core:player, 34 app
-- [ ] Merged manifest shows the service with `foregroundServiceType="dataSync"`
-- [ ] Exactly **one** `SimpleCache` construction site in the codebase (`grep -rn "SimpleCache(" core app`)
-- [ ] `docs/decisions.md` contains D-001 … D-009
-- [ ] The seven-step offline sequence verified on device
+- [x] `./gradlew assembleDebug` — `BUILD SUCCESSFUL`
+- [x] 112 tests, 0 failures (the plan predicted 100; the split was stale before this plan
+      started, and this plan added 8 beyond what it specified)
+- [x] Merged manifest shows the service with `foregroundServiceType="dataSync"`
+- [x] Exactly **one** `SimpleCache` construction site in the codebase
+- [x] `docs/decisions.md` contains D-001 … D-012 plus D-015 and D-016 (D-009 and D-010 were
+      free; D-013/D-014 belong to the Shorts branch)
+- [x] The seven-step offline sequence verified on device
 
 **Next plan:** Onboarding, Profile, sign-out, and ship.
