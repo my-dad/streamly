@@ -1016,7 +1016,21 @@ androidx-compose-material-icons-core = { group = "androidx.compose.material", na
 then add `implementation(libs.androidx.compose.material.icons.core)` to `app/build.gradle.kts`.
 Do **not** add `material-icons-extended` — it is large and unnecessary for four icons.
 
-- [ ] **Step 7: Prove the ViewModel decorator actually scopes — do not skip**
+- [x] **Step 7: Prove the ViewModel decorator actually scopes — do not skip**
+
+> **DEFERRED to the Player plan (`2026-07-27-player.md`, Task 5 Step 4a), 2026-07-27.**
+> This check requires a running app and no device is available to the agent. Rather
+> than add and remove a throwaway `ProbeViewModel` that could never be observed, the
+> verification moved to the Player plan, where a real `PlayerViewModel.onCleared()`
+> releasing a real `ExoPlayer` exists — the behaviour this probe only approximates.
+>
+> **Verified statically here:** `lifecycle-viewmodel-navigation3` 2.11.0 is on the
+> runtime classpath, `rememberViewModelStoreNavEntryDecorator()` resolves and compiles
+> at the `NavDisplay` call site, and `navigation3-runtime` 1.1.4 ships no ViewModel
+> decorator of its own (so the defaults cannot provide one).
+>
+> **Not verified:** that `onCleared()` actually fires on pop. Plans 3–6 assume it does.
+> The original procedure is preserved below for reference.
 
 This is the one behaviour that later plans silently depend on. Add a temporary probe: in `AppViewModel`, add
 
