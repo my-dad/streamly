@@ -20,8 +20,10 @@ sealed interface HomeIntent {
     data object Refresh : HomeIntent
     data class VideoClicked(val videoId: String) : HomeIntent
     data class CategorySelected(val category: String) : HomeIntent
+    data object ProfileClicked : HomeIntent
 }
 
 sealed interface HomeEffect {
     data class OpenPlayer(val videoId: String) : HomeEffect
+    data object OpenProfile : HomeEffect
 }

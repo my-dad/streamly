@@ -41,6 +41,9 @@ class HomeViewModel @Inject constructor(
             is HomeIntent.VideoClicked -> viewModelScope.launch {
                 _effects.send(HomeEffect.OpenPlayer(intent.videoId))
             }
+            HomeIntent.ProfileClicked -> viewModelScope.launch {
+                _effects.send(HomeEffect.OpenProfile)
+            }
         }
     }
 

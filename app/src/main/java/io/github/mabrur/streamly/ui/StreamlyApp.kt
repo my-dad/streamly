@@ -1,7 +1,9 @@
 package io.github.mabrur.streamly.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -83,6 +85,11 @@ private fun StreamlyNavHost(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        // The top inset is deliberately NOT consumed here. Home's app bar and the Shorts
+        // pager both paint edge to edge behind the status bar; screens that need the inset
+        // apply statusBarsPadding() themselves. Consuming it in the Scaffold would leave a
+        // white strip above Home's accent bar with no way for the screen to reclaim it.
+        contentWindowInsets = WindowInsets.navigationBars,
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar(
@@ -142,6 +149,12 @@ private fun StreamlyNavHost(
                     HomeRoute(
                         onOpenPlayer = { videoId ->
                             backStack.add(StreamlyKey.Player(videoId))
+                        },
+                        // Same reset-the-stack behaviour as tapping the Profile tab, so
+                        // the avatar and the tab cannot disagree about the back stack.
+                        onOpenProfile = {
+                            backStack.clear()
+                            backStack.add(StreamlyKey.Profile)
                         },
                     )
                 }

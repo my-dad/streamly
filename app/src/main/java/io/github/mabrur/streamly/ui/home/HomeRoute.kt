@@ -13,6 +13,7 @@ import androidx.lifecycle.repeatOnLifecycle
 @Composable
 fun HomeRoute(
     onOpenPlayer: (String) -> Unit,
+    onOpenProfile: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -24,6 +25,7 @@ fun HomeRoute(
             viewModel.effects.collect { effect ->
                 when (effect) {
                     is HomeEffect.OpenPlayer -> onOpenPlayer(effect.videoId)
+                    HomeEffect.OpenProfile -> onOpenProfile()
                 }
             }
         }

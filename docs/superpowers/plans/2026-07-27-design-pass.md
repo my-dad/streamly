@@ -585,7 +585,7 @@ git commit -m "feat(ui): toast pill from the design" \
 
 ## Task 4: Onboarding, Home, and shared components
 
-- [ ] **Step 1: Restyle Onboarding**
+- [x] **Step 1: Restyle Onboarding**
 
 Replace the body of `OnboardingScreen`. Per conflict #3, the email `TextField` and its
 validation **go away** — the design's "Sign in with email" navigates directly:
@@ -606,7 +606,7 @@ fields, and `isValidEmail`. **Delete the two now-dead tests** (`EmailChanged upd
 
 > Net effect: three onboarding tests instead of five, and roughly 40 fewer lines.
 
-- [ ] **Step 2: Add the Home app bar**
+- [x] **Step 2: Add the Home app bar**
 
 The design has one and Plan 3 did not build it. Add to `HomeScreen`, above the chip row:
 
@@ -643,7 +643,7 @@ Add `data object ProfileClicked` to `HomeIntent` and `data object OpenProfile` t
 handle it at the nav host by switching to the Profile key. Use `statusBarsPadding()` rather
 than the design's literal `54px` top padding — that value is an iPhone status bar, not ours.
 
-- [ ] **Step 3: Restyle the chips and card**
+- [x] **Step 3: Restyle the chips and card**
 
 `CategoryChipRow`: replace `FilterChip` with plain pills — `StreamlyShapes.Pill`,
 `Accent`/`Surface` when selected, `ChipFill`/`Ink` when not, `labelMedium`, `8.dp × 18.dp`
@@ -655,10 +655,22 @@ placeholder behind the Coil image; duration badge bottom-end, `Color.Black.copy(
 (`AvatarPlaceholder`) beside title (`titleMedium`, `Ink`, max 2 lines) and
 `"channel · meta"` (`bodySmall`, `Muted`). Feed background becomes `FeedBackground`.
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 Run: `./gradlew :app:compileDebugKotlin && ./gradlew :app:testDebugUnitTest`
-Expected: `BUILD SUCCESSFUL`; 44 app tests (46 minus the two deleted email tests).
+Expected: `BUILD SUCCESSFUL`. **Result: 124 tests, 0 failures** — no tests were deleted.
+
+### Deviations
+
+1. **Step 1's email deletion was not performed** — conflict #3 was overruled, see the top of
+   this plan. The field, its validation and both tests stay; only the styling changes, onto
+   white-on-gradient with the design's radii.
+2. **The Scaffold no longer consumes the top window inset.** Adding the app bar exposed
+   that `Scaffold` was eating the status-bar inset before Home could use it, leaving a white
+   strip above the accent bar that `statusBarsPadding()` inside the screen could not
+   reclaim. `contentWindowInsets` is now `navigationBars` only, and Onboarding, Downloads
+   and Profile apply `statusBarsPadding()` themselves. Home and Shorts intentionally paint
+   behind the status bar.
 
 ```bash
 git add app/src core/designsystem/src
