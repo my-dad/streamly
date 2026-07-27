@@ -32,3 +32,7 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# Claude Code — machine-local permission grants. The shared plugin list in
+# .claude/settings.json is tracked; this file is not.
+.claude/settings.local.json
