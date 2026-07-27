@@ -9,11 +9,13 @@ import io.github.mabrur.streamly.domain.model.UserProfile
 import io.github.mabrur.streamly.domain.model.Video
 import io.github.mabrur.streamly.domain.repository.CatalogRepository
 import io.github.mabrur.streamly.domain.usecase.GetHomeFeedUseCase
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -39,6 +41,16 @@ private class FakeCatalogRepository(
     var result: Result<HomeFeed>,
 ) : CatalogRepository {
     override suspend fun getHomeFeed(): Result<HomeFeed> = result
+    override suspend fun getShorts(): Result<List<Short>> = Result.success(emptyList())
+    override suspend fun getVideo(id: String): Result<Video> = Result.failure(AppError.NotFound)
+    override suspend fun getRelated(id: String): Result<List<Video>> = Result.success(emptyList())
+    override suspend fun getProfile(): Result<UserProfile> = Result.failure(AppError.NotFound)
+}
+
+private class DeferredCatalogRepository(
+    private val results: ArrayDeque<CompletableDeferred<Result<HomeFeed>>>,
+) : CatalogRepository {
+    override suspend fun getHomeFeed(): Result<HomeFeed> = results.removeFirst().await()
     override suspend fun getShorts(): Result<List<Short>> = Result.success(emptyList())
     override suspend fun getVideo(id: String): Result<Video> = Result.failure(AppError.NotFound)
     override suspend fun getRelated(id: String): Result<List<Video>> = Result.success(emptyList())
@@ -110,6 +122,40 @@ class HomeViewModelTest {
             val filtered = awaitItem()
             assertEquals("Gaming", filtered.selectedCategory)
             assertEquals(listOf("b"), filtered.videos.map { it.id })
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `latest category selection wins when requests complete out of order`() = runTest {
+        val initial = CompletableDeferred<Result<HomeFeed>>()
+        val music = CompletableDeferred<Result<HomeFeed>>()
+        val gaming = CompletableDeferred<Result<HomeFeed>>()
+        val repository = DeferredCatalogRepository(ArrayDeque(listOf(initial, music, gaming)))
+        val vm = HomeViewModel(GetHomeFeedUseCase(repository))
+
+        vm.state.test {
+            assertTrue(awaitItem().isLoading)
+            initial.complete(Result.success(feed))
+            assertEquals(listOf("a", "b"), awaitItem().videos.map { it.id })
+
+            vm.onIntent(HomeIntent.CategorySelected("Music"))
+            assertEquals("Music", awaitItem().selectedCategory)
+            runCurrent()
+
+            vm.onIntent(HomeIntent.CategorySelected("Gaming"))
+            assertEquals("Gaming", awaitItem().selectedCategory)
+            runCurrent()
+
+            gaming.complete(Result.success(feed))
+            runCurrent()
+            assertEquals(listOf("b"), awaitItem().videos.map { it.id })
+
+            music.complete(Result.success(feed))
+            runCurrent()
+            assertEquals(listOf("b"), vm.state.value.videos.map { it.id })
+            expectNoEvents()
 
             cancelAndIgnoreRemainingEvents()
         }

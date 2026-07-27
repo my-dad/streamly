@@ -7,6 +7,7 @@ import io.github.mabrur.streamly.domain.error.AppError
 import io.github.mabrur.streamly.domain.model.Category
 import io.github.mabrur.streamly.domain.usecase.GetHomeFeedUseCase
 import javax.inject.Inject
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +28,8 @@ class HomeViewModel @Inject constructor(
     private val _effects = Channel<HomeEffect>(Channel.BUFFERED)
     val effects: Flow<HomeEffect> = _effects.receiveAsFlow()
 
+    private var loadJob: Job? = null
+
     init {
         load(HomeUiState.ALL_CATEGORY)
     }
@@ -42,10 +45,11 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun load(category: String) {
+        loadJob?.cancel()
         _state.update {
             it.copy(isLoading = true, error = null, selectedCategory = category)
         }
-        viewModelScope.launch {
+        loadJob = viewModelScope.launch {
             val nowSeconds = System.currentTimeMillis() / 1_000
             getHomeFeed(Category(category))
                 .onSuccess { feed ->
