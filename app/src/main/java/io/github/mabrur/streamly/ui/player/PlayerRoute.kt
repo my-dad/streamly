@@ -2,14 +2,15 @@ package io.github.mabrur.streamly.ui.player
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import io.github.mabrur.streamly.core.designsystem.component.StreamlyToastHost
+import io.github.mabrur.streamly.core.designsystem.component.rememberToastState
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleStartEffect
@@ -26,7 +27,7 @@ fun PlayerRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
-    val snackbarHostState = remember { SnackbarHostState() }
+    val toastState = rememberToastState()
 
     // The id comes from the route key, not SavedStateHandle — Nav3 does not populate
     // that from route keys. The ViewModel ignores a repeat Load for the same id, so
@@ -51,10 +52,9 @@ fun PlayerRoute(
                     is PlayerEffect.OpenVideo -> onOpenVideo(effect.videoId)
                     // Without this the Download button is silent: the work happens in the
                     // background and the screen looks like it ignored the tap.
-                    PlayerEffect.DownloadStarted ->
-                        snackbarHostState.showSnackbar("Download started")
+                    PlayerEffect.DownloadStarted -> toastState.show("Download started")
                     PlayerEffect.DownloadFailed ->
-                        snackbarHostState.showSnackbar("Couldn't start that download")
+                        toastState.show("Couldn't start that download")
                 }
             }
         }
@@ -66,9 +66,11 @@ fun PlayerRoute(
             player = viewModel.player,
             onIntent = viewModel::onIntent,
         )
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter),
+        StreamlyToastHost(
+            message = toastState.message,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp),
         )
     }
 }

@@ -450,7 +450,7 @@ one thing here with a test.
 **Interfaces:**
 - Produces: `@Composable fun StreamlyToastHost(message: String?, modifier: Modifier)` — renders a pill above the tab bar, animated in. Message lives in each screen's `UiState`, cleared by an intent, so it stays inside MVI rather than becoming composable-local state.
 
-- [ ] **Step 1: Write the host**
+- [x] **Step 1: Write the host**
 
 ```kotlin
 package io.github.mabrur.streamly.core.designsystem.component
@@ -504,7 +504,7 @@ fun StreamlyToastHost(
 }
 ```
 
-- [ ] **Step 2: Add the state field and auto-dismiss**
+- [x] **Step 2: Add the state field and auto-dismiss**
 
 For each screen that toasts, add `val toastMessage: String? = null` to its `UiState` and a
 `data object ToastDismissed` intent. In the ViewModel, raise it like this — the delay lives in
@@ -528,7 +528,7 @@ the ViewModel so it is deterministic under `runTest`:
 Wire `PlayerIntent.DownloadClicked` → *"Download started"*, and the Profile "Watch history" /
 "Settings" rows → *"Coming soon"*, and a tap on an incomplete download → *"Still downloading…"*.
 
-- [ ] **Step 3: Add one test**
+- [x] **Step 3: Add one test**
 
 In `PlayerViewModelTest`:
 
@@ -548,10 +548,32 @@ In `PlayerViewModelTest`:
     }
 ```
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 Run: `./gradlew :app:testDebugUnitTest`
-Expected: PASS — 46 app tests.
+Expected: PASS. **Result: 124 tests, 0 failures** (the plan's "46 app tests" predates
+Shorts, Downloads and their extra coverage).
+
+### Deviation: the toast message does not live in `UiState`
+
+Step 2 says to add `toastMessage: String?` to each screen's `UiState` and auto-dismiss it
+from the ViewModel. That directly contradicts a **hard constraint** in `AGENTS.md`:
+
+> One-shot events (navigation, snackbars) go through an `Effect` Channel/Flow — never
+> through state, never as lambdas stored in the ViewModel.
+
+A toast is the example the rule names. Storing it in state would also replay the toast on
+every configuration change, since the state would be re-collected with the message still set.
+
+Implemented the compliant way instead, with the same visual result: the ViewModel emits an
+`Effect` (`PlayerEffect.DownloadStarted`, `ProfileEffect.ShowToast`,
+`DownloadsEffect.ShowToast`), and a small `rememberToastState()` holder in the route owns
+only how long the pill stays up. The ViewModel behaviour stays unit-testable — which was the
+plan's stated reason for putting it in state — because what is asserted is the effect, not a
+timer.
+
+The Player's existing `SnackbarHost` was replaced by the toast rather than added alongside,
+so there is one notification surface, not two.
 
 ```bash
 git add core/designsystem/src app/src

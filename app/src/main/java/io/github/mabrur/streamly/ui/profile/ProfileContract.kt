@@ -14,7 +14,13 @@ data class ProfileUiState(
 
 sealed interface ProfileIntent {
     data object Retry : ProfileIntent
+    data class ShallowLinkClicked(val label: String) : ProfileIntent
     data object SignOutClicked : ProfileIntent
     data object SignOutConfirmed : ProfileIntent
     data object SignOutDismissed : ProfileIntent
+}
+
+sealed interface ProfileEffect {
+    /** Watch history and Settings are shallow links; the design answers them with a toast. */
+    data class ShowToast(val message: String) : ProfileEffect
 }

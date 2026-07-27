@@ -28,4 +28,5 @@ sealed interface DownloadsIntent {
 
 sealed interface DownloadsEffect {
     data class OpenPlayer(val videoId: String) : DownloadsEffect
+    data class ShowToast(val message: String) : DownloadsEffect
 }

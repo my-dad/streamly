@@ -1,5 +1,6 @@
 package io.github.mabrur.streamly.ui.profile
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -60,13 +61,15 @@ fun ProfileScreen(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
 
-            // Shallow links, explicitly permitted by the PRD.
+            // Shallow links, explicitly permitted by the PRD. They are tappable so the
+            // toast can say so, rather than looking broken when nothing happens.
             listOf("Downloads", "History", "Settings").forEach { label ->
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clickable { onIntent(ProfileIntent.ShallowLinkClicked(label)) }
                         .padding(vertical = 12.dp),
                 )
             }

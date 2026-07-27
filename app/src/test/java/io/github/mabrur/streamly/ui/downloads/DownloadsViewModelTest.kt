@@ -116,9 +116,11 @@ class DownloadsViewModelTest {
     }
 
     @Test
-    fun `PlayClicked emits OpenPlayer rather than changing state`() = runTest(dispatcher) {
+    fun `PlayClicked on a completed download emits OpenPlayer`() = runTest(dispatcher) {
         val repository = FakeDownloadRepository()
         val viewModel = DownloadsViewModel(repository)
+        runCurrent()
+        repository.emitted.value = listOf(item("a", DownloadStatus.Completed))
         runCurrent()
 
         viewModel.effects.test {
@@ -127,4 +129,20 @@ class DownloadsViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    @Test
+    fun `PlayClicked on an unfinished download toasts instead of opening`() =
+        runTest(dispatcher) {
+            val repository = FakeDownloadRepository()
+            val viewModel = DownloadsViewModel(repository)
+            runCurrent()
+            repository.emitted.value = listOf(item("a", DownloadStatus.InProgress(30f)))
+            runCurrent()
+
+            viewModel.effects.test {
+                viewModel.onIntent(DownloadsIntent.PlayClicked("a"))
+                assertEquals(DownloadsEffect.ShowToast("Still downloading…"), awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
 }

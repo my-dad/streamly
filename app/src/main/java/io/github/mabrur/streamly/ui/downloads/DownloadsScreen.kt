@@ -57,14 +57,10 @@ private fun DownloadRow(
     onIntent: (DownloadsIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isPlayable = item.status is DownloadStatus.Completed
-
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(enabled = isPlayable) {
-                onIntent(DownloadsIntent.PlayClicked(item.videoId))
-            }
+            .clickable { onIntent(DownloadsIntent.PlayClicked(item.videoId)) }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

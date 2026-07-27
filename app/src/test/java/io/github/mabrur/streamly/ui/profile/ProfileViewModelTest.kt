@@ -131,4 +131,16 @@ class ProfileViewModelTest {
         assertEquals(1, session.signOutCount)
         assertFalse(vm.state.value.showSignOutDialog)
     }
+
+    @Test
+    fun `a shallow link toasts rather than navigating`() = runTest {
+        val (vm, _) = viewModel()
+        runCurrent()
+
+        vm.effects.test {
+            vm.onIntent(ProfileIntent.ShallowLinkClicked("History"))
+            assertEquals(ProfileEffect.ShowToast("Coming soon"), awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }

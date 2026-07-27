@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.mabrur.streamly.core.designsystem.format.formatBytes
 import io.github.mabrur.streamly.domain.model.DownloadItem
+import io.github.mabrur.streamly.domain.model.DownloadStatus
 import io.github.mabrur.streamly.domain.repository.DownloadRepository
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
@@ -48,7 +49,14 @@ class DownloadsViewModel @Inject constructor(
                 downloadRepository.remove(intent.videoId)
             }
             is DownloadsIntent.PlayClicked -> viewModelScope.launch {
-                _effects.send(DownloadsEffect.OpenPlayer(intent.videoId))
+                // The row stays tappable while downloading so the toast can explain why
+                // nothing opened. A disabled row just reads as broken.
+                val item = _state.value.items.firstOrNull { it.videoId == intent.videoId }
+                if (item?.status == DownloadStatus.Completed) {
+                    _effects.send(DownloadsEffect.OpenPlayer(intent.videoId))
+                } else {
+                    _effects.send(DownloadsEffect.ShowToast("Still downloading…"))
+                }
             }
         }
     }
