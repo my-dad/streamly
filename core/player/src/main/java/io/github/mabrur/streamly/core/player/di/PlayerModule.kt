@@ -10,11 +10,14 @@ import androidx.media3.datasource.cache.NoOpCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import io.github.mabrur.streamly.core.player.ExoPlayerHolder
+import io.github.mabrur.streamly.core.player.PlayerHolder
 import java.io.File
 import javax.inject.Named
 import javax.inject.Singleton
@@ -88,4 +91,16 @@ object PlayerModule {
         dataSourceFactory: DataSource.Factory,
     ): MediaSource.Factory = DefaultMediaSourceFactory(context)
         .setDataSourceFactory(dataSourceFactory)
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class PlayerBindingModule {
+
+    /**
+     * Intentionally NOT @Singleton. Each PlayerViewModel gets its own holder, so
+     * releasing one when its NavEntry is popped cannot poison the next Player screen.
+     */
+    @Binds
+    abstract fun bindPlayerHolder(impl: ExoPlayerHolder): PlayerHolder
 }
