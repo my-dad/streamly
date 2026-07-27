@@ -203,3 +203,53 @@ classpath as a transitive of the artifact it replaces.
 `com.google.dagger:hilt-android`, which supports `@AndroidEntryPoint` on Fragments and
 so declares it. That cannot be removed without dropping Hilt. No Fragment is subclassed
 or referenced anywhere in the source, which is what the constraint actually forbids.
+
+---
+
+## D-013 — Shorts has no `Effect` type
+
+**Status:** Accepted · 2026-07-27
+
+`AGENTS.md` requires every screen to define `XxxUiState`, `XxxIntent`, `XxxEffect` and
+`XxxViewModel`. `ShortsContract.kt` defines three of the four: there is no `ShortsEffect`.
+
+Shorts is a self-contained surface. It navigates nowhere, raises no snackbar, and opens no
+dialog — the only outbound signal is the pager settling, which is an *intent* travelling up,
+not an effect travelling down. An empty sealed interface plus an unused `Channel` and an
+unused `LaunchedEffect` collector in the route would be four pieces of ceremony that no
+call site ever exercises, and dead code in a take-home reads worse than a documented gap.
+
+**Consequence:** if Shorts later grows a one-shot event — "open this creator's channel",
+an error snackbar distinct from the inline error state — the `Effect` channel goes in then,
+matching `HomeViewModel`'s existing pattern exactly. Until then, every other screen keeps
+the full contract and this is the one deliberate exception.
+
+---
+
+## D-014 — Shorts renders through a `TextureView`; the Player screen keeps its `SurfaceView`
+
+**Status:** Accepted · 2026-07-27
+
+`PlayerScreen` passes `SURFACE_TYPE_SURFACE_VIEW` to `PlayerSurface`. `ShortsScreen` passes
+`SURFACE_TYPE_TEXTURE_VIEW`. The two playback surfaces deliberately differ.
+
+A `SurfaceView` is drawn in its own compositor layer *behind* the app window and is only
+visible because the view hierarchy punches a transparent hole through to it. `VerticalPager`
+offsets each page through a `graphicsLayer`, which composites the page into its own layer,
+and the hole is never punched. The observed failure is specific and misleading: the h264
+decoder runs, `dumpsys audio` shows a started `AudioTrack`, and the screen is pure black —
+it looks like a load failure rather than a compositing one. A `TextureView` draws in the
+normal hierarchy and survives the transform, which is why it is the standard choice for
+video inside a pager.
+
+The Player screen is not in a pager and gains nothing from switching, so it keeps the
+cheaper `SurfaceView` (no extra texture copy, better for a long-form 16:9 stage).
+
+**Also settled here:** `PlayerSurface` does no aspect-ratio fitting of its own. Filling the
+page stretched the catalog's 16:9 shorts into a 9:20 box. Both surfaces now scale through
+`resizeWithContentScale` — `ContentScale.Crop` for Shorts, matching what a shorts feed is
+expected to do.
+
+**Consequence:** any future full-bleed playback surface inside a scrolling or paging
+container must use `TEXTURE_VIEW`. The symptom of getting it wrong is a black page with
+working audio.

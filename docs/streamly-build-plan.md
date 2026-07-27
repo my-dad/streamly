@@ -80,7 +80,10 @@ the catalog is served in-process by MockEngine.
 ### What is actually left
 
 **Build work, all unblocked:**
-1. Shorts Tasks 2–4 — the pooled pager on top of the existing `ShortsPoolPolicy`.
+1. ~~Shorts Tasks 2–4~~ — **done** on `feat/shorts-pager`, unmerged. `Shorts` is a real
+   route; only `Downloads` is still a `PlaceholderScreen`. Smoke-verified on the emulator:
+   two slots only, pool released on tab switch, settled page survives rotation, no crash.
+   The audio-bleed check is still outstanding and is the one that grades the feature.
 2. Downloads Tasks 2–6 — the download stack on top of the existing `DownloadStatusMapper`.
 3. Phase 7 Tasks 3–5 — architecture audit, docs, ship. Needs 5 and 6 done first.
 4. Phase 8 — design pass. Run last.

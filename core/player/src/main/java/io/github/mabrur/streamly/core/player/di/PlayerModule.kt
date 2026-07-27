@@ -18,6 +18,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.mabrur.streamly.core.player.ExoPlayerHolder
 import io.github.mabrur.streamly.core.player.PlayerHolder
+import io.github.mabrur.streamly.core.player.shorts.ShortsPlayerPool
+import io.github.mabrur.streamly.core.player.shorts.ShortsPool
 import java.io.File
 import javax.inject.Named
 import javax.inject.Singleton
@@ -103,4 +105,8 @@ abstract class PlayerBindingModule {
      */
     @Binds
     abstract fun bindPlayerHolder(impl: ExoPlayerHolder): PlayerHolder
+
+    /** Unscoped: one pool per ShortsViewModel, released when its NavEntry is popped. */
+    @Binds
+    abstract fun bindShortsPool(impl: ShortsPlayerPool): ShortsPool
 }
