@@ -27,9 +27,18 @@ All prior constraints apply. Plus:
 |---|---|---|---|
 | 1 | Player screen ends after the Like/Share/Download row | "related/'up next' list" | **Keep the up-next list**, below the action row, using the restyled `VideoCard`. |
 | 2 | Downloads rows have no remove affordance | "**remove download** support" | **Keep remove**, as a trailing icon button on each row rather than the Material `TextButton` Plan 6 specified. |
-| 3 | Onboarding "Sign in with email" navigates directly | Onboarding must offer email sign-in | **Follow the design** — drop the `TextField` and validation from Plan 7 Task 1. The PRD permits a mocked social/email path; this is strictly less code. Delete the two now-dead email tests. |
+| 3 | Onboarding "Sign in with email" navigates directly | Onboarding must offer email sign-in | **OVERRULED — the field stays.** See the note below. |
 
-Recorded as **D-010** in Task 8.
+> **Conflict #3 was overruled by the project owner during execution.** The plan's own first
+> rule is that the PRD outranks the design, and PRD §9 requires Onboarding to offer email
+> sign-in — deleting the field to match the export contradicts the rule the table opens with.
+> By the time this plan ran, the email path was also verified working on device: a valid
+> address signs in, an invalid one shows "Enter a valid email address" and does not proceed.
+> Deleting working, tested, verified behaviour to save a `TextField` is a bad trade. The
+> field, its validation and both tests stay; only its styling is brought onto the tokens.
+
+Recorded as **D-017** in Task 8 — *not* D-010 as this plan states. D-010 was taken by the
+Downloads plan while this one sat unexecuted, and `docs/decisions.md` is append-only.
 
 ---
 
@@ -62,7 +71,7 @@ Recorded as **D-010** in Task 8.
 **Interfaces:**
 - Produces: `StreamlyColors` (object), `StreamlyShapes`, `StreamlyType`, and a rewritten `StreamlyTheme`. Every later task reads from these.
 
-- [ ] **Step 1: Write the palette**
+- [x] **Step 1: Write the palette**
 
 Create `theme/StreamlyColors.kt`:
 
@@ -110,7 +119,7 @@ object StreamlyColors {
 }
 ```
 
-- [ ] **Step 2: Write shapes and type**
+- [x] **Step 2: Write shapes and type**
 
 Create `theme/StreamlyShapes.kt`:
 
@@ -219,7 +228,7 @@ val StreamlyType = Typography(
 )
 ```
 
-- [ ] **Step 3: Rewrite the theme**
+- [x] **Step 3: Rewrite the theme**
 
 Replace `theme/Theme.kt` entirely, then delete `Color.kt` and `Type.kt`:
 
@@ -268,13 +277,13 @@ fun StreamlyTheme(content: @Composable () -> Unit) {
 > `MainActivity` calls it with only a content lambda, so no call-site edit is needed — but
 > delete any `darkTheme =` argument if one was added.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run: `./gradlew :app:compileDebugKotlin`
 Expected: `BUILD SUCCESSFUL`. Unresolved `Purple80`/`Typography` references mean a file still
 imports the deleted template — repoint it at the new tokens.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git rm core/designsystem/src/main/java/io/github/mabrur/streamly/core/designsystem/theme/Color.kt \
