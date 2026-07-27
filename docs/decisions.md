@@ -119,6 +119,30 @@ without it silently reintroduces the leak.
 
 ---
 
+## D-008 — Transport controls bypass the MVI intent channel
+
+**Status:** Accepted · 2026-07-27
+
+Play/pause, mute, and scrub are driven by the `media3-ui-compose` state holders
+(`rememberPlayPauseButtonState`, `rememberMuteButtonState`,
+`rememberProgressStateWithTickInterval`) acting directly on the `Player`. They do not
+travel through `PlayerIntent`.
+
+Screen-level concerns — retry, download, selecting an up-next item — **do** go through
+`PlayerIntent`, and all screen state still lives in `PlayerUiState`.
+
+**Why:** routing transport through the ViewModel would duplicate state holders Media3
+already ships and tests, and would push a position tick through a `StateFlow` several times
+a second purely to re-render a scrubber. The `Player` is owned by the ViewModel either way,
+so the ownership rule is not weakened — only the control path is shortened.
+
+**Consequence:** `PlayerViewModel` exposes `val player: Player`. That is a deliberate
+exception to "UI never touches anything but state and intents", and it is the reason
+`PlayerHolder` exists: the ViewModel depends on that narrow interface, not on `ExoPlayer`,
+so it stays unit-testable.
+
+---
+
 > **Numbering note:** D-008 through D-010 are pre-allocated by the remaining
 > implementation plans, which reference those IDs in code comments. Records written
 > outside a plan therefore start at D-011 to avoid renumbering them.

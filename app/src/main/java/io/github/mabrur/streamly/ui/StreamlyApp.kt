@@ -29,6 +29,7 @@ import io.github.mabrur.streamly.ui.navigation.StreamlyKey
 import io.github.mabrur.streamly.ui.navigation.TopLevelDestination
 import io.github.mabrur.streamly.ui.navigation.startKeyFor
 import io.github.mabrur.streamly.ui.placeholder.PlaceholderScreen
+import io.github.mabrur.streamly.ui.player.PlayerRoute
 
 @Composable
 fun StreamlyApp(
@@ -127,7 +128,17 @@ private fun StreamlyNavHost(
                 entry<StreamlyKey.Shorts> { PlaceholderScreen("Shorts") }
                 entry<StreamlyKey.Downloads> { PlaceholderScreen("Downloads") }
                 entry<StreamlyKey.Profile> { PlaceholderScreen("Profile") }
-                entry<StreamlyKey.Player> { key -> PlaceholderScreen("Player ${key.videoId}") }
+                entry<StreamlyKey.Player> { key ->
+                    PlayerRoute(
+                        videoId = key.videoId,
+                        // Replaces the top key rather than pushing, so Back returns to
+                        // Home instead of walking a chain of Player entries.
+                        onOpenVideo = { videoId ->
+                            backStack.removeLastOrNull()
+                            backStack.add(StreamlyKey.Player(videoId))
+                        },
+                    )
+                }
             },
         )
     }
