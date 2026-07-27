@@ -28,8 +28,10 @@ import io.github.mabrur.streamly.ui.home.HomeRoute
 import io.github.mabrur.streamly.ui.navigation.StreamlyKey
 import io.github.mabrur.streamly.ui.navigation.TopLevelDestination
 import io.github.mabrur.streamly.ui.navigation.startKeyFor
+import io.github.mabrur.streamly.ui.onboarding.OnboardingRoute
 import io.github.mabrur.streamly.ui.placeholder.PlaceholderScreen
 import io.github.mabrur.streamly.ui.player.PlayerRoute
+import io.github.mabrur.streamly.ui.profile.ProfileRoute
 
 @Composable
 fun StreamlyApp(
@@ -117,7 +119,7 @@ private fun StreamlyNavHost(
                 rememberViewModelStoreNavEntryDecorator(),
             ),
             entryProvider = entryProvider<NavKey> {
-                entry<StreamlyKey.Onboarding> { PlaceholderScreen("Onboarding") }
+                entry<StreamlyKey.Onboarding> { OnboardingRoute() }
                 entry<StreamlyKey.Home> {
                     HomeRoute(
                         onOpenPlayer = { videoId ->
@@ -127,7 +129,7 @@ private fun StreamlyNavHost(
                 }
                 entry<StreamlyKey.Shorts> { PlaceholderScreen("Shorts") }
                 entry<StreamlyKey.Downloads> { PlaceholderScreen("Downloads") }
-                entry<StreamlyKey.Profile> { PlaceholderScreen("Profile") }
+                entry<StreamlyKey.Profile> { ProfileRoute() }
                 entry<StreamlyKey.Player> { key ->
                     PlayerRoute(
                         videoId = key.videoId,
