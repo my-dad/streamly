@@ -253,3 +253,105 @@ expected to do.
 **Consequence:** any future full-bleed playback surface inside a scrolling or paging
 container must use `TEXTURE_VIEW`. The symptom of getting it wrong is a black page with
 working audio.
+## D-009 — `DownloadRepositoryImpl` lives in `:core:player`, not `:data`
+
+**Status:** Accepted · 2026-07-27
+
+`CatalogRepositoryImpl` and `SessionRepositoryImpl` live in `:data`. `DownloadRepositoryImpl`
+does not — it lives in `:core:player`.
+
+The implementation is inseparable from Media3: it needs `DownloadManager`, `DownloadHelper`,
+`DownloadService`, and the shared `SimpleCache`. Putting it in `:data` would mean adding the
+whole Media3 offline stack to a module whose job is Ktor and DataStore, purely to satisfy a
+naming convention.
+
+The architectural rule that actually matters is unbroken: `:core:player → :domain`, `:app`
+injects the `DownloadRepository` **interface**, and no Media3 type crosses into `:app`.
+
+**Consequence:** "repository implementations live in `:data`" is not a project-wide
+invariant. The invariant is "repository implementations live beside the technology they
+wrap, and depend only on `:domain`."
+
+> Numbering note: D-009 and D-010 were never written — the sequence jumped from D-008 to
+> D-011 during the player work — so this record takes the first free id rather than
+> appending after D-012. The Shorts branch independently uses D-013 and D-014, so there is
+> no collision when these branches merge.
+
+---
+
+## D-010 — Downloads cap video bitrate; one catalog source stays large regardless
+
+**Status:** Accepted · 2026-07-27
+
+`DownloadRepositoryImpl` passes `TrackSelectionParameters` with `maxVideoBitrate` set to
+1.5 Mbps rather than letting `DownloadHelper` select renditions freely.
+
+Left at its defaults, `DownloadHelper` picks by decoder capability alone, and the catalog's
+1080p sources come to roughly half a gigabyte each — absurd for a demo, and slow enough to
+make the progress UI untestable.
+
+The constraint is deliberately **soft**. `DefaultTrackSelector` still selects the smallest
+available rendition when every one of them exceeds the cap, so a single-rendition stream
+downloads rather than silently producing an audio-only file that reports "Ready to play"
+and then fails.
+
+The no-argument `TrackSelectionParameters.Builder()` is used rather than the `Context`
+overload, which would constrain selection to the current display size — a playback concern
+that must not decide what gets stored offline.
+
+**Consequence:** eight of the eighteen catalog videos point at `tos_ismc`, which publishes
+exactly one rendition (1080p, 6.3 Mbps, ~10 minutes). No track selection can shrink those;
+they download at roughly half a gigabyte each. The other ten are bounded by the cap.
+Repointing those eight at a multi-rendition source is a catalog change, deferred.
+
+---
+
+## D-015 — Downloaded videos play from their `DownloadRequest`, so `PlayerHolder` takes a video id
+
+**Status:** Accepted · 2026-07-27
+
+`PlayerHolder.setMedia` was `setMedia(hlsUrl, startPositionMs)`. It is now
+`setMedia(videoId, hlsUrl, startPositionMs)`, and `ExoPlayerHolder` consults the
+`DownloadIndex` before choosing what to play: a `STATE_COMPLETED` download is played via
+`download.request.toMediaItem()`, anything else streams `hlsUrl`.
+
+Playing the master playlist URL for a downloaded video does not work offline. The URL lets
+the track selector pick any rendition in the ladder, including ones that were never stored;
+online the miss is silently fetched and everything looks correct, and offline it fails with
+`UnknownHostException`. That is exactly what the first airplane-mode test produced. The
+`DownloadRequest` carries the stream keys naming the rendition actually on disk, so playing
+through it constrains the selector to what exists locally.
+
+The lookup lives in `:core:player` rather than in the ViewModel. `:app` passes a plain
+`String` id and never learns that Media3, `DownloadIndex`, or `DownloadRequest` exist.
+
+**Consequence:** `ExoPlayerHolder` now depends on `DownloadManager`, so the player and
+download stacks are coupled inside `:core:player`. That is the same coupling the shared
+`SimpleCache` already implies, and it is contained within one module.
+
+---
+
+## D-016 — Two Media3 behaviours the plans assumed wrongly
+
+**Status:** Accepted · 2026-07-27
+
+Both were found by running the app, not by reading it, and both are recorded because the
+code now looks over-built without the explanation.
+
+**`DownloadHelper` needs a `RenderersFactory` or it downloads everything.** Built through
+`DownloadHelper.Factory()` without one, the helper has no renderer capabilities to select
+against, every track resolves as unsupported, and `getDownloadRequest` returns an empty
+stream-key list — which Media3 reads as "store the entire media". Measured: all five
+renditions of the 848×480 test stream, ~800 MB instead of ~127 MB, with the D-010 bitrate
+cap having no observable effect whatsoever. The cap only became real once
+`setRenderersFactory(DefaultRenderersFactory(context))` was added.
+
+**`DownloadManager.Listener` is not a progress source.** It fires on state transitions —
+queued, completed, removed — and never as bytes arrive. Observing it alone, as the plan
+specified, left the row frozen at "13% · 105.5 MB" for 24 seconds while the cache on disk
+grew from 263 MB to 291 MB. `DownloadRepositoryImpl` now also polls the index once a second
+while any download is in progress, and stops the moment none is.
+
+**Consequence:** "progress comes from observing `DownloadManager` into a Flow" is true of
+where the numbers come from, not of when they are read. Nothing is interpolated: a stalled
+download still visibly stalls, which a timer-driven fake progress bar would hide.

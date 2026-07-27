@@ -51,3 +51,20 @@ fun formatDuration(durationMs: Long): String {
         String.format(Locale.US, "%d:%02d", minutes, seconds)
     }
 }
+
+/**
+ * "0 B", "512 B", "1.4 MB". Binary units, one decimal above KB.
+ *
+ * Bytes are shown whole — "1.0 B" would be nonsense — so the decimal only starts at KB.
+ */
+fun formatBytes(bytes: Long): String {
+    if (bytes < 1024) return "$bytes B"
+    val units = listOf("KB", "MB", "GB", "TB")
+    var value = bytes.toDouble() / 1024
+    var unitIndex = 0
+    while (value >= 1024 && unitIndex < units.lastIndex) {
+        value /= 1024
+        unitIndex++
+    }
+    return String.format(Locale.US, "%.1f %s", value, units[unitIndex])
+}

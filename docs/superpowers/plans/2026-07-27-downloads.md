@@ -250,7 +250,7 @@ The plumbing that is easiest to get wrong and fatal to the demo when it is.
 - Consumes: `SimpleCache`, `DatabaseProvider`, `@Named("upstream") DataSource.Factory` from `PlayerModule`.
 - Produces: `@Singleton DownloadManager` bound to that exact cache.
 
-- [ ] **Step 1: Write the DI module**
+- [x] **Step 1: Write the DI module**
 
 Create `core/player/src/main/java/io/github/mabrur/streamly/core/player/download/DownloadModule.kt`:
 
@@ -307,7 +307,7 @@ object DownloadModule {
 }
 ```
 
-- [ ] **Step 2: Write the service**
+- [x] **Step 2: Write the service**
 
 Create `core/player/src/main/java/io/github/mabrur/streamly/core/player/download/StreamlyDownloadService.kt`:
 
@@ -374,7 +374,7 @@ class StreamlyDownloadService : DownloadService(
 }
 ```
 
-- [ ] **Step 3: Add the channel strings**
+- [x] **Step 3: Add the channel strings**
 
 Create `core/player/src/main/res/values/strings.xml`:
 
@@ -386,7 +386,7 @@ Create `core/player/src/main/res/values/strings.xml`:
 </resources>
 ```
 
-- [ ] **Step 4: Declare the service and permissions**
+- [x] **Step 4: Declare the service and permissions**
 
 Create `core/player/src/main/AndroidManifest.xml`. Declaring these in the library module means
 they merge into `:app` automatically — no edit to the app manifest is needed:
@@ -419,18 +419,46 @@ they merge into `:app` automatically — no edit to the app manifest is needed:
 > means the foreground notification never shows and the service is killed. Missing the
 > service declaration means `sendAddDownload` silently does nothing.
 
-- [ ] **Step 5: Verify the merged manifest**
+- [x] **Step 5: Verify the merged manifest**
 
 Run: `./gradlew :app:processDebugMainManifest && grep -A4 StreamlyDownloadService app/build/intermediates/merged_manifest/debug/*/AndroidManifest.xml`
 Expected: the `<service>` element appears with `android:foregroundServiceType="dataSync"`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add core/player/src/main
 git commit -m "feat(downloads): DownloadManager, service, and manifest plumbing" \
            -m "Co-authored-by: Claude <noreply@anthropic.com>"
 ```
+
+### Deviations from the plan as executed
+
+1. **The `@Inject` field cannot be called `downloadManager`.** As written, the plan does
+   not compile: Kotlin synthesises `getDownloadManager()` for the property, which clashes
+   on its JVM signature with the `getDownloadManager()` override immediately below it.
+   Renamed to `injectedDownloadManager`.
+2. **The `RESTART` intent-filter was dropped.** `DownloadService` in Media3 1.10.1 exposes
+   no `ACTION_RESTART` constant (verified with `javap -constants`); the restart action is
+   one an app defines for a `Scheduler` to broadcast. We deliberately have no `Scheduler`,
+   so the filter was dead configuration.
+3. **The service is declared by fully-qualified name**, not the relative `.download.…`.
+   Relative names in a *library* manifest are expanded against the merged application id,
+   not the library namespace, so the plan's form would have resolved to the wrong class.
+4. **`@file:OptIn(UnstableApi::class)` omitted**, consistent with the rest of `:core:player` —
+   `UnstableApi` is not `@RequiresOptIn` in 1.10.1, so the annotation only produces a warning.
+5. **Pre-task probe: the catalog's streams are downloadable.** All three distinct HLS
+   sources are `#EXT-X-PLAYLIST-TYPE:VOD` with `#EXT-X-ENDLIST`, carry no `#EXT-X-KEY`, and
+   serve segments over plain HTTP 200 — so `DownloadHelper` has nothing to choke on. This
+   retires the risk-register item that was never closed at task 0.7.
+   **But `tos_ismc` has exactly one rendition — 1080p at 6.3 Mbps, ~10 min ≈ 480 MB.**
+   `DownloadHelper` at default parameters selects by renderer capability, not size, so
+   Task 3 must constrain `maxVideoBitrate` or that single video downloads half a gigabyte.
+
+> **Not verifiable here:** the emulator is API 33. `foregroundServiceType` and
+> `FOREGROUND_SERVICE_DATA_SYNC` are inert below API 34, so the manifest lines that prevent
+> `MissingForegroundServiceTypeException` are written from the platform contract and
+> confirmed only in the merged manifest — never observed working on a device that enforces them.
 
 ---
 
@@ -444,7 +472,7 @@ git commit -m "feat(downloads): DownloadManager, service, and manifest plumbing"
 - Consumes: `DownloadRepository` (declared in `:domain` back in the foundation plan), `DownloadManager`, `downloadStatusFor`.
 - Produces: a bound `DownloadRepository`, so `:app` injects only the domain interface.
 
-- [ ] **Step 1: Write the implementation**
+- [x] **Step 1: Write the implementation**
 
 Create `core/player/src/main/java/io/github/mabrur/streamly/core/player/download/DownloadRepositoryImpl.kt`:
 
@@ -602,7 +630,7 @@ private fun Download.toDomain(): DownloadItem {
 }
 ```
 
-- [ ] **Step 2: Bind it**
+- [x] **Step 2: Bind it**
 
 Append to `DownloadModule.kt`, as a separate module in the same file:
 
@@ -619,18 +647,39 @@ abstract class DownloadBindingModule {
 
 adding imports `dagger.Binds`, `io.github.mabrur.streamly.domain.repository.DownloadRepository`.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `./gradlew :app:compileDebugKotlin`
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add core/player/src/main/java/io/github/mabrur/streamly/core/player/download
 git commit -m "feat(downloads): repository with real DownloadManager progress" \
            -m "Co-authored-by: Claude <noreply@anthropic.com>"
 ```
+
+### Deviations from the plan as executed
+
+1. **`DownloadHelper.Callback.onPrepared` takes two arguments in Media3 1.10.1**
+   (`onPrepared(DownloadHelper, boolean)`), not one. The plan's single-argument override
+   does not compile.
+2. **Track selection is constrained to 1.5 Mbps of video** — not in the plan at all. Left
+   at defaults, `DownloadHelper` selects renditions by decoder capability alone and the
+   catalog's 1080p sources come to ~480 MB each. The constraint is deliberately soft
+   (`DefaultTrackSelector` still picks the smallest rendition when all of them exceed the
+   cap) so a single-rendition stream downloads rather than yielding an audio-only file.
+3. **`TrackSelectionParameters.Builder()` with no Context.** The Context overload
+   constrains selection to the current display size — a playback concern that must not
+   leak into what gets stored offline.
+4. **`@file:OptIn(UnstableApi::class)` omitted**, as in Task 2.
+
+> **Still unmeasured:** eight of the eighteen catalog videos point at `tos_ismc`, which
+> publishes exactly one rendition — 1080p at 6.3 Mbps, ~10 minutes. No track selection can
+> shrink it, so those eight download at roughly half a gigabyte each. The other ten are
+> bounded by the cap. Whether to repoint those eight at a multi-rendition source is a
+> catalog decision, not a code one.
 
 ---
 
@@ -643,7 +692,7 @@ git commit -m "feat(downloads): repository with real DownloadManager progress" \
 - Create: `app/src/main/java/io/github/mabrur/streamly/ui/downloads/DownloadsRoute.kt`
 - Modify: `app/src/main/java/io/github/mabrur/streamly/ui/StreamlyApp.kt`
 
-- [ ] **Step 1: Write the contract**
+- [x] **Step 1: Write the contract**
 
 Create `app/src/main/java/io/github/mabrur/streamly/ui/downloads/DownloadsContract.kt`:
 
@@ -681,7 +730,7 @@ sealed interface DownloadsEffect {
 }
 ```
 
-- [ ] **Step 2: Add a byte formatter with its test**
+- [x] **Step 2: Add a byte formatter with its test**
 
 Append to `core/designsystem/.../format/Formatting.kt`:
 
@@ -713,7 +762,7 @@ Append to `FormattingTest`:
     }
 ```
 
-- [ ] **Step 3: Write the ViewModel**
+- [x] **Step 3: Write the ViewModel**
 
 Create `app/src/main/java/io/github/mabrur/streamly/ui/downloads/DownloadsViewModel.kt`:
 
@@ -783,7 +832,7 @@ private fun DownloadItem.toRowUi() = DownloadRowUi(
 )
 ```
 
-- [ ] **Step 4: Write the screen**
+- [x] **Step 4: Write the screen**
 
 Create `app/src/main/java/io/github/mabrur/streamly/ui/downloads/DownloadsScreen.kt`:
 
@@ -890,7 +939,7 @@ private fun DownloadRow(
 }
 ```
 
-- [ ] **Step 5: Write the route and wire it in**
+- [x] **Step 5: Write the route and wire it in**
 
 Create `app/src/main/java/io/github/mabrur/streamly/ui/downloads/DownloadsRoute.kt`:
 
@@ -942,7 +991,7 @@ In `StreamlyApp.kt`, replace the Downloads entry:
 
 and add `import io.github.mabrur.streamly.ui.downloads.DownloadsRoute`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/src/main/java/io/github/mabrur/streamly/ui/downloads \
@@ -951,11 +1000,31 @@ git commit -m "feat(downloads): screen with real progress, storage header, remov
            -m "Co-authored-by: Claude <noreply@anthropic.com>"
 ```
 
+### Deviations from the plan as executed
+
+1. **`hiltViewModel` is imported from `androidx.hilt.lifecycle.viewmodel.compose`**, not
+   `androidx.hilt.navigation.compose` as the plan writes — the latter drags in Nav2, which
+   D-012 forbids. Same correction as every other route in this app.
+2. **The row renders its thumbnail.** `DownloadRowUi.thumbnailUrl` exists in the plan's
+   contract but nothing in the plan's screen ever reads it. A downloads list with no
+   artwork looks broken, and Coil is already wired for Home and Profile.
+3. **Added `DownloadsViewModelTest` (5 tests)** — the plan specifies no test for this
+   ViewModel, but AGENTS.md requires intent→state coverage for every screen. Covers the
+   loading→loaded transition, item mapping, the summed storage label, progress updates not
+   re-entering loading, `RemoveClicked` delegation, and `PlayClicked` emitting an effect
+   rather than mutating state.
+
+Suite after this task: **109 tests, 0 failures.**
+
+> **Unverified on a device.** Nothing here has been run: no download has been started, so
+> no row, no progress bar, and no empty state has ever been rendered. That is the next
+> thing to do, and it is exactly the check I skipped on Shorts.
+
 ---
 
 ## Task 5: Wire the Player download button and notification permission
 
-- [ ] **Step 1: Inject the repository into `PlayerViewModel`**
+- [x] **Step 1: Inject the repository into `PlayerViewModel`**
 
 Add the constructor parameter and replace the stubbed `DownloadClicked` branch:
 
@@ -1001,7 +1070,7 @@ and add:
     }
 ```
 
-- [ ] **Step 2: Request `POST_NOTIFICATIONS` at runtime**
+- [x] **Step 2: Request `POST_NOTIFICATIONS` at runtime**
 
 In `MainActivity`, add inside `onCreate` before `setContent`:
 
@@ -1017,21 +1086,29 @@ with imports `android.Manifest`, `android.os.Build`, `androidx.activity.result.c
 > `minSdk` is 25, so the version guard is mandatory — the permission does not exist below 33
 > and requesting it unguarded throws.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `./gradlew :app:compileDebugKotlin && ./gradlew testDebugUnitTest`
 Expected: `BUILD SUCCESSFUL`, all tests pass.
 
-- [ ] **Needs device verification — this sequence is the 30% category:**
-  1. Open a video → tap **Download**.
-  2. Go to Downloads → **progress moves and is real** (matches network activity, never jumps backwards).
-  3. Wait for "Ready to play".
-  4. **Enable airplane mode.**
-  5. Tap the completed item → **it plays**.
-  6. Tap **Remove** → the item disappears and storage-used drops.
-  7. Kill and relaunch the app → completed downloads are still listed.
+- [x] **Device verification — run on the API 33 emulator, all seven steps:**
+  1. [x] Open a video → tap **Download** → "Download started" snackbar, foreground-service
+     icon appears in the status bar.
+  2. [x] Downloads → progress moves and is real: 1% → 13% → 40% → 55% → 62%, monotonic,
+     never backwards. Cross-checked against the on-disk cache growing at ~2.8 MB/s.
+  3. [x] Reaches "Ready to play · 127.5 MB".
+  4. [x] Airplane mode enabled — `dumpsys connectivity` reports `Active default network: none`.
+  5. [x] Tap the completed item → **it plays offline**, 1:15 / 10:34 and rising, verified by
+     screenshot showing real decoded frames rather than by position alone.
+  6. [x] **Remove** → row disappears, empty state renders, storage drops 291 MB → 92 KB.
+  7. [x] Force-stop and relaunch while still offline → the completed download is still
+     listed at 127.5 MB and still plays.
+  - [x] Regression check: with the network restored, a *non*-downloaded video still streams.
 
-- [ ] **Step 4: Commit**
+  **Three defects were found by this sequence, all invisible from the code** — see the
+  deviations below and D-015/D-016.
+
+- [x] **Step 4: Commit**
 
 ```bash
 git add app/src/main
@@ -1039,11 +1116,46 @@ git commit -m "feat(downloads): wire player download action and notification per
            -m "Co-authored-by: Claude <noreply@anthropic.com>"
 ```
 
+### Deviations from the plan as executed
+
+1. **Download failures are handled.** The plan's branch calls `downloadRepository.download(it)`
+   bare. `DownloadHelper` parses the playlist over the network, so an `IOException` there
+   would escape the coroutine and take the Player screen down on a bad connection. Wrapped
+   in `runCatching`, with a new `PlayerEffect.DownloadFailed` for the failure path.
+2. **`DownloadStarted` is actually surfaced.** `PlayerRoute` collected it into `Unit` with a
+   comment deferring to this plan; leaving it there would mean the Download button gives no
+   feedback whatsoever. The route now hosts a `SnackbarHost` and shows a message for both
+   outcomes.
+3. **Two extra tests** beyond the plan's one: tapping Download before the video loads must
+   be a no-op, and a failing download must report rather than crash.
+
+Suite after this task: **112 tests, 0 failures.**
+
+---
+
+### Defects found during device verification
+
+1. **`DownloadHelper` downloaded every rendition.** Built through `DownloadHelper.Factory()`
+   with no `RenderersFactory`, it has no renderer capabilities to select against, so every
+   track resolves unsupported and `getDownloadRequest` returns an empty stream-key list —
+   which Media3 reads as "store the entire media". ~800 MB instead of ~127 MB, and the
+   Task 3 bitrate cap had no observable effect until this was fixed.
+2. **Progress never moved.** `DownloadManager.Listener` fires on state transitions only,
+   never as bytes arrive, so "observe DownloadManager into a Flow" leaves the row frozen.
+   Measured: "13% · 105.5 MB" unchanged for 24 seconds while the cache grew 263 → 291 MB.
+   Fixed by polling the index once a second while anything is in progress.
+3. **Offline playback failed with `UnknownHostException`.** A downloaded video was played
+   by its master playlist URL, which lets the track selector choose a rendition that was
+   never stored. `PlayerHolder.setMedia` now takes a video id and plays a completed
+   download through its own `DownloadRequest`.
+
+Recorded as D-015 and D-016. Suite after the fixes: **112 tests, 0 failures.**
+
 ---
 
 ## Task 6: Decision record
 
-- [ ] **Step 1: Append D-009**
+- [x] **Step 1: Append D-009**
 
 ```markdown
 
@@ -1069,7 +1181,7 @@ invariant. The invariant is "repository implementations live beside the technolo
 wrap, and depend only on `:domain`."
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add docs/decisions.md
@@ -1081,11 +1193,13 @@ git commit -m "docs(decisions): record D-009 download repository placement" \
 
 ## Definition of done
 
-- [ ] `./gradlew assembleDebug` — `BUILD SUCCESSFUL`
-- [ ] 100 tests — 8 domain, 20 data, 19 designsystem, 19 core:player, 34 app
-- [ ] Merged manifest shows the service with `foregroundServiceType="dataSync"`
-- [ ] Exactly **one** `SimpleCache` construction site in the codebase (`grep -rn "SimpleCache(" core app`)
-- [ ] `docs/decisions.md` contains D-001 … D-009
-- [ ] The seven-step offline sequence verified on device
+- [x] `./gradlew assembleDebug` — `BUILD SUCCESSFUL`
+- [x] 112 tests, 0 failures (the plan predicted 100; the split was stale before this plan
+      started, and this plan added 8 beyond what it specified)
+- [x] Merged manifest shows the service with `foregroundServiceType="dataSync"`
+- [x] Exactly **one** `SimpleCache` construction site in the codebase
+- [x] `docs/decisions.md` contains D-001 … D-012 plus D-015 and D-016 (D-009 and D-010 were
+      free; D-013/D-014 belong to the Shorts branch)
+- [x] The seven-step offline sequence verified on device
 
 **Next plan:** Onboarding, Profile, sign-out, and ship.
