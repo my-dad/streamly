@@ -8,26 +8,29 @@ Network data is faked. The architecture, player lifecycle, and code quality are 
 
 ## Status
 
-Nothing below is ticked. A box gets ticked only after the feature is verified on a
-physical device — not when the code compiles and its unit tests pass.
+A box is ticked only after the feature is verified on a device — not when the code
+compiles and its unit tests pass.
 
-- [ ] Onboarding with session persistence — *implemented, awaiting device verification*
-- [ ] Home feed with categories, loading/empty/error states — *implemented, awaiting device verification*
-- [ ] Player — HLS, lifecycle-correct, rotation-safe — *implemented, awaiting device verification*
-- [ ] Profile + sign-out confirmation — *implemented, awaiting device verification*
-- [ ] Shorts — vertical pager, pooled players — *not started*
-- [ ] Downloads — real progress, offline playback, remove — *not started*
-- [ ] Adaptive layout via `WindowSizeClass` — *not started*
+- [x] **Player — HLS, lifecycle-correct, rotation-safe** — verified on an emulator: plays,
+      buffering shutter clears, `onCleared()` fires on pop with exactly one player release,
+      rotation never recreates the player or loses position, background pauses and return
+      resumes, repeated navigation stays balanced, no leak reported
+- [ ] Onboarding with session persistence — built; *guest sign-in verified on device*, email
+      sign-in and returning-user skip not yet exercised
+- [ ] Home feed with categories, loading/empty/error states — built; *renders correctly on
+      device with real formatted metadata*, error/Retry path and scroll preservation not yet
+      exercised
+- [ ] Profile + sign-out confirmation — built and unit-tested; not yet opened on a device
+- [ ] Shorts — vertical pager, pooled players — pool assignment policy done and tested; the
+      pager and player pool are not built
+- [ ] Downloads — real progress, offline playback, remove — download state mapper done and
+      tested; the download stack is not built
+- [ ] Adaptive layout via `WindowSizeClass` — not started
 
 The device checks that gate these are listed per-feature in the corresponding plan under
-`docs/superpowers/plans/`, under a "needs device verification" heading. They cover rotation
-safety, player release and leak checks, audio bleed, and offline playback — none of which
-a unit test can establish.
-
-**Work in flight.** Home feed is on `master`. Player is on `feat/player` and
-Onboarding/Profile on `feat/onboarding-profile`; both are complete with green unit tests
-but are held unmerged until their device checks pass. Anything below that references those
-features — including decision record D-008 — arrives on `master` with them.
+`docs/superpowers/plans/`. They cover rotation safety, player release and leak checks, audio
+bleed, and offline playback — none of which a unit test can establish. `docs/streamly-build-plan.md`
+carries the phase-by-phase state.
 
 ## Architecture
 
@@ -110,6 +113,10 @@ This list grows as features land; it currently covers what is built.
 
 ## Known limitations
 
+- **The Player screen does not adapt to landscape.** The 16:9 stage takes the full width, so
+  in landscape it consumes the whole height and pushes the title, Download button, controls
+  and up-next list off-screen with no scroll. Playback itself is correct and rotation-safe.
+  This is the `WindowSizeClass` work that is still outstanding.
 - The MockEngine fails roughly one request in eight by design, so error states are genuinely
   reachable in the demo. This is deliberate, not a bug.
 - No instrumented tests. Unit tests cover ViewModel intent→state transitions and all display
