@@ -77,7 +77,7 @@ not available in plain JVM unit tests.
 **Interfaces:**
 - Produces: `fun downloadStatusFor(state: Int, percentDownloaded: Float): DownloadStatus`. Consumed by `DownloadRepositoryImpl`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `core/player/src/test/java/io/github/mabrur/streamly/core/player/download/DownloadStatusMapperTest.kt`:
 
@@ -152,12 +152,12 @@ class DownloadStatusMapperTest {
 }
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `./gradlew :core:player:testDebugUnitTest --tests '*DownloadStatusMapperTest'`
 Expected: FAIL — `Unresolved reference: downloadStatusFor`.
 
-- [ ] **Step 3: Write the mapper**
+- [x] **Step 3: Write the mapper**
 
 Create `core/player/src/main/java/io/github/mabrur/streamly/core/player/download/DownloadStatusMapper.kt`:
 
@@ -196,12 +196,12 @@ fun downloadStatusFor(state: Int, percentDownloaded: Float): DownloadStatus =
     }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `./gradlew :core:player:testDebugUnitTest --tests '*DownloadStatusMapperTest'`
 Expected: PASS — 10 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add core/player/src/main/java/io/github/mabrur/streamly/core/player/download \
@@ -209,6 +209,29 @@ git add core/player/src/main/java/io/github/mabrur/streamly/core/player/download
 git commit -m "feat(downloads): exhaustive download state mapper" \
            -m "Co-authored-by: Claude <noreply@anthropic.com>"
 ```
+
+---
+
+## Plan split — Task 1 landed early, Tasks 2–6 blocked
+
+**Branch:** `feat/download-status-mapper`, cut from `master`. Task 1 only.
+
+This plan is explicitly split. Task 1 is a pure `Int` → sealed-type function with no
+dependency on the shared `SimpleCache`, so it was pulled forward while `feat/player` is
+parked awaiting device verification. 10 tests pass, no warnings.
+
+The file lands in `:core:player`, which has no sources on `master`, so it cannot collide
+with `feat/player`'s `PlayerModule.kt` / `PlayerHolder.kt` / `ExoPlayerHolder.kt` — or with
+`feat/shorts-pool-policy`, which adds a different package in the same module.
+
+**Tasks 2–6 remain blocked.** Task 2 binds `DownloadManager` to the `@Singleton SimpleCache`
+that `PlayerModule` provides, and every task after it builds on that. They cannot start
+until `feat/player` merges.
+
+**Deviation:** the plan's `@file:OptIn(UnstableApi::class)` was dropped. In Media3 1.10.1
+`UnstableApi` is not annotated `@RequiresOptIn`, so the opt-in is inert and the compiler
+warns *"'@OptIn' has no effect"*. Without it the file compiles clean. The same applies to
+every other file in these plans that carries that annotation.
 
 ---
 
