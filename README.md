@@ -15,12 +15,17 @@ compiles and its unit tests pass.
       buffering shutter clears, `onCleared()` fires on pop with exactly one player release,
       rotation never recreates the player or loses position, background pauses and return
       resumes, repeated navigation stays balanced, no leak reported
-- [ ] Onboarding with session persistence — built; *guest sign-in verified on device*, email
-      sign-in and returning-user skip not yet exercised
-- [ ] Home feed with categories, loading/empty/error states — built; *renders correctly on
-      device with real formatted metadata*, error/Retry path and scroll preservation not yet
-      exercised
-- [ ] Profile + sign-out confirmation — built and unit-tested; not yet opened on a device
+- [x] **Onboarding with session persistence** — verified on an emulator: guest sign-in, email
+      sign-in, an invalid address showing "Enter a valid email address" rather than
+      proceeding, and a relaunch after signing in landing straight on Home
+- [x] **Home feed with categories, loading/empty/error states** — verified on an emulator:
+      renders with real formatted metadata, category chips filter, the error state shows
+      "No connection" with a working Retry, and rotation preserves scroll position exactly.
+      One gap, listed under Known limitations: scroll is *not* preserved when returning
+      from the Player
+- [x] **Profile + sign-out confirmation** — verified on an emulator: avatar, name and email
+      render, Cancel dismisses the dialog without signing out, and confirming clears the
+      session and lands on Onboarding with the back stack reset
 - [x] **Shorts — vertical pager, pooled players** — verified on an emulator: video renders
       and plays, exactly one `AudioTrack` is ever in `started` state (measured via
       `dumpsys audio`) including under fast swiping, backgrounding stops audio and returning
@@ -137,6 +142,13 @@ This list grows as features land; it currently covers what is built.
 - No instrumented tests. Unit tests cover ViewModel intent→state transitions and all display
   formatters; the rendering, lifecycle, and playback behaviour they cannot reach is what the
   device checks in the Status section exist for.
+- **Returning from the Player resets the Home feed's scroll position.** The feed itself is
+  not reloaded — no refetch, no loading flash, the data is retained — but the list returns to
+  the top. Rotation preserves the same scroll perfectly, which isolates it to the Nav3
+  `SaveableStateHolder` entry decorator not restoring on pop rather than to anything in the
+  screen: `rememberSaveable` demonstrably works here. Two fixes were tried and measured
+  (hoisting the `LazyListState` above `ContentState`, and reversing the decorator order);
+  neither changed the behaviour, so both were reverted rather than left as unmotivated churn.
 - `compileSdk` is 37 while `targetSdk` stays 36 — forced by AAR metadata on several AndroidX
   dependencies. See D-011.
 - **Eight of the eighteen catalog videos are ~500 MB to download.** They point at a test
