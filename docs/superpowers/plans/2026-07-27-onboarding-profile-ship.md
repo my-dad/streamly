@@ -825,6 +825,23 @@ device verification and is **not** merged, so none of its code is on this branch
 - Profile → Sign out → dialog appears; Cancel does nothing; confirm returns to Onboarding
   with the back stack cleared, not popped
 
+### Expect one merge conflict, in `StreamlyApp.kt`
+
+A trial merge of every open branch confirmed this branch is the only one that conflicts,
+and only against `feat/player`. Both edit the same two regions of `StreamlyApp.kt`: the
+import block, and the `entryProvider` body. That is structural — every feature branch
+registers its screen in the one nav host — not a design problem.
+
+The resolution is mechanical: keep all three imports (`OnboardingRoute`, `PlayerRoute`,
+`ProfileRoute`) and all three real entries, so `Onboarding`, `Profile` and `Player` are
+live and only `Shorts` and `Downloads` remain `PlaceholderScreen`. Nothing else conflicts —
+`feat/shorts-pool-policy` and `feat/download-status-mapper` add new packages to
+`:core:player` and merge clean in any order.
+
+With `feat/player`, `feat/shorts-pool-policy`, `feat/download-status-mapper` and
+`docs/readme-architecture` merged together, the suite is green: 92 tests, 0 failures
+(8 domain, 20 data, 17 designsystem, 19 core:player, 28 app).
+
 ### Two deviations
 
 1. **`hiltViewModel()` import.** The plan writes `androidx.hilt.navigation.compose`
