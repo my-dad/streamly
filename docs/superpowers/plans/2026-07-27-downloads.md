@@ -692,7 +692,7 @@ git commit -m "feat(downloads): repository with real DownloadManager progress" \
 - Create: `app/src/main/java/io/github/mabrur/streamly/ui/downloads/DownloadsRoute.kt`
 - Modify: `app/src/main/java/io/github/mabrur/streamly/ui/StreamlyApp.kt`
 
-- [ ] **Step 1: Write the contract**
+- [x] **Step 1: Write the contract**
 
 Create `app/src/main/java/io/github/mabrur/streamly/ui/downloads/DownloadsContract.kt`:
 
@@ -730,7 +730,7 @@ sealed interface DownloadsEffect {
 }
 ```
 
-- [ ] **Step 2: Add a byte formatter with its test**
+- [x] **Step 2: Add a byte formatter with its test**
 
 Append to `core/designsystem/.../format/Formatting.kt`:
 
@@ -762,7 +762,7 @@ Append to `FormattingTest`:
     }
 ```
 
-- [ ] **Step 3: Write the ViewModel**
+- [x] **Step 3: Write the ViewModel**
 
 Create `app/src/main/java/io/github/mabrur/streamly/ui/downloads/DownloadsViewModel.kt`:
 
@@ -832,7 +832,7 @@ private fun DownloadItem.toRowUi() = DownloadRowUi(
 )
 ```
 
-- [ ] **Step 4: Write the screen**
+- [x] **Step 4: Write the screen**
 
 Create `app/src/main/java/io/github/mabrur/streamly/ui/downloads/DownloadsScreen.kt`:
 
@@ -939,7 +939,7 @@ private fun DownloadRow(
 }
 ```
 
-- [ ] **Step 5: Write the route and wire it in**
+- [x] **Step 5: Write the route and wire it in**
 
 Create `app/src/main/java/io/github/mabrur/streamly/ui/downloads/DownloadsRoute.kt`:
 
@@ -991,7 +991,7 @@ In `StreamlyApp.kt`, replace the Downloads entry:
 
 and add `import io.github.mabrur.streamly.ui.downloads.DownloadsRoute`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/src/main/java/io/github/mabrur/streamly/ui/downloads \
@@ -999,6 +999,26 @@ git add app/src/main/java/io/github/mabrur/streamly/ui/downloads \
 git commit -m "feat(downloads): screen with real progress, storage header, remove" \
            -m "Co-authored-by: Claude <noreply@anthropic.com>"
 ```
+
+### Deviations from the plan as executed
+
+1. **`hiltViewModel` is imported from `androidx.hilt.lifecycle.viewmodel.compose`**, not
+   `androidx.hilt.navigation.compose` as the plan writes — the latter drags in Nav2, which
+   D-012 forbids. Same correction as every other route in this app.
+2. **The row renders its thumbnail.** `DownloadRowUi.thumbnailUrl` exists in the plan's
+   contract but nothing in the plan's screen ever reads it. A downloads list with no
+   artwork looks broken, and Coil is already wired for Home and Profile.
+3. **Added `DownloadsViewModelTest` (5 tests)** — the plan specifies no test for this
+   ViewModel, but AGENTS.md requires intent→state coverage for every screen. Covers the
+   loading→loaded transition, item mapping, the summed storage label, progress updates not
+   re-entering loading, `RemoveClicked` delegation, and `PlayClicked` emitting an effect
+   rather than mutating state.
+
+Suite after this task: **109 tests, 0 failures.**
+
+> **Unverified on a device.** Nothing here has been run: no download has been started, so
+> no row, no progress bar, and no empty state has ever been rendered. That is the next
+> thing to do, and it is exactly the check I skipped on Shorts.
 
 ---
 

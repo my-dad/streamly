@@ -80,4 +80,13 @@ class FormattingTest {
         assertEquals("0:00", formatDuration(0))
         assertEquals("0:00", formatDuration(-5_000))
     }
+
+    @Test
+    fun `formats byte sizes in binary units`() {
+        assertEquals("0 B", formatBytes(0))
+        assertEquals("512 B", formatBytes(512))
+        assertEquals("1.0 KB", formatBytes(1024))
+        assertEquals("1.5 MB", formatBytes(1_572_864))
+        assertEquals("2.0 GB", formatBytes(2L * 1024 * 1024 * 1024))
+    }
 }

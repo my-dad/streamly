@@ -24,6 +24,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import io.github.mabrur.streamly.ui.downloads.DownloadsRoute
 import io.github.mabrur.streamly.ui.home.HomeRoute
 import io.github.mabrur.streamly.ui.navigation.StreamlyKey
 import io.github.mabrur.streamly.ui.navigation.TopLevelDestination
@@ -128,7 +129,11 @@ private fun StreamlyNavHost(
                     )
                 }
                 entry<StreamlyKey.Shorts> { PlaceholderScreen("Shorts") }
-                entry<StreamlyKey.Downloads> { PlaceholderScreen("Downloads") }
+                entry<StreamlyKey.Downloads> {
+                    DownloadsRoute(
+                        onOpenPlayer = { videoId -> backStack.add(StreamlyKey.Player(videoId)) },
+                    )
+                }
                 entry<StreamlyKey.Profile> { ProfileRoute() }
                 entry<StreamlyKey.Player> { key ->
                     PlayerRoute(
