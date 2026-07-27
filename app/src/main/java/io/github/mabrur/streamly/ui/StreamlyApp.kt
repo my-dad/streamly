@@ -7,15 +7,19 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import io.github.mabrur.streamly.core.designsystem.theme.StreamlyColors
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -81,10 +85,14 @@ private fun StreamlyNavHost(
         modifier = modifier.fillMaxSize(),
         bottomBar = {
             if (showBottomBar) {
-                NavigationBar {
+                NavigationBar(
+                    containerColor = StreamlyColors.Surface,
+                    tonalElevation = 0.dp,
+                ) {
                     TopLevelDestination.entries.forEach { destination ->
+                        val selected = currentKey == destination.key
                         NavigationBarItem(
-                            selected = currentKey == destination.key,
+                            selected = selected,
                             onClick = {
                                 if (currentKey != destination.key) {
                                     // Top-level switches reset the stack rather than
@@ -95,11 +103,20 @@ private fun StreamlyNavHost(
                             },
                             icon = {
                                 Icon(
-                                    imageVector = destination.icon,
+                                    painter = painterResource(destination.iconRes),
                                     contentDescription = stringResource(destination.labelRes),
+                                    tint = if (selected) {
+                                        StreamlyColors.Accent
+                                    } else {
+                                        StreamlyColors.TabInactive
+                                    },
                                 )
                             },
-                            label = { Text(stringResource(destination.labelRes)) },
+                            // The design labels nothing in the bar; contentDescription
+                            // above is what keeps the tabs reachable to a screen reader.
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = Color.Transparent,
+                            ),
                         )
                     }
                 }

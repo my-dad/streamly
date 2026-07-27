@@ -312,7 +312,7 @@ Downloads icon in particular is a down-arrow-to-baseline, for which Plan 2 subst
 > Fragments; `res/drawable` vectors are the standard way to ship an icon and are not a
 > layout. The audit in the ship plan greps `res/layout/` specifically, and still passes.
 
-- [ ] **Step 1: Write the four vectors**
+- [x] **Step 1: Write the four vectors**
 
 Paths transcribed directly from the SVGs in `streamly.dc.html`. `#FF000000` is a placeholder —
 `Icon(tint = …)` recolours it at draw time.
@@ -371,7 +371,7 @@ Paths transcribed directly from the SVGs in `streamly.dc.html`. `#FF000000` is a
 </vector>
 ```
 
-- [ ] **Step 2: Point the destinations at them**
+- [x] **Step 2: Point the destinations at them**
 
 In `TopLevelDestination.kt`, replace the `ImageVector` field with a drawable resource id:
 
@@ -390,7 +390,7 @@ enum class TopLevelDestination(
 
 swapping the `androidx.compose.material.icons.*` imports for `androidx.annotation.DrawableRes`.
 
-- [ ] **Step 3: Restyle the bar in `StreamlyApp.kt`**
+- [x] **Step 3: Restyle the bar in `StreamlyApp.kt`**
 
 Replace the `NavigationBar` block. The design has no labels — icon only, accent when active:
 
@@ -425,7 +425,7 @@ Replace the `NavigationBar` block. The design has no labels — icon only, accen
 
 Keep the existing `onClick` body exactly as it is.
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 Run: `./gradlew :app:compileDebugKotlin`
 
