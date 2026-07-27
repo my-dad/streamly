@@ -250,7 +250,7 @@ The plumbing that is easiest to get wrong and fatal to the demo when it is.
 - Consumes: `SimpleCache`, `DatabaseProvider`, `@Named("upstream") DataSource.Factory` from `PlayerModule`.
 - Produces: `@Singleton DownloadManager` bound to that exact cache.
 
-- [ ] **Step 1: Write the DI module**
+- [x] **Step 1: Write the DI module**
 
 Create `core/player/src/main/java/io/github/mabrur/streamly/core/player/download/DownloadModule.kt`:
 
@@ -307,7 +307,7 @@ object DownloadModule {
 }
 ```
 
-- [ ] **Step 2: Write the service**
+- [x] **Step 2: Write the service**
 
 Create `core/player/src/main/java/io/github/mabrur/streamly/core/player/download/StreamlyDownloadService.kt`:
 
@@ -374,7 +374,7 @@ class StreamlyDownloadService : DownloadService(
 }
 ```
 
-- [ ] **Step 3: Add the channel strings**
+- [x] **Step 3: Add the channel strings**
 
 Create `core/player/src/main/res/values/strings.xml`:
 
@@ -386,7 +386,7 @@ Create `core/player/src/main/res/values/strings.xml`:
 </resources>
 ```
 
-- [ ] **Step 4: Declare the service and permissions**
+- [x] **Step 4: Declare the service and permissions**
 
 Create `core/player/src/main/AndroidManifest.xml`. Declaring these in the library module means
 they merge into `:app` automatically — no edit to the app manifest is needed:
@@ -419,18 +419,46 @@ they merge into `:app` automatically — no edit to the app manifest is needed:
 > means the foreground notification never shows and the service is killed. Missing the
 > service declaration means `sendAddDownload` silently does nothing.
 
-- [ ] **Step 5: Verify the merged manifest**
+- [x] **Step 5: Verify the merged manifest**
 
 Run: `./gradlew :app:processDebugMainManifest && grep -A4 StreamlyDownloadService app/build/intermediates/merged_manifest/debug/*/AndroidManifest.xml`
 Expected: the `<service>` element appears with `android:foregroundServiceType="dataSync"`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add core/player/src/main
 git commit -m "feat(downloads): DownloadManager, service, and manifest plumbing" \
            -m "Co-authored-by: Claude <noreply@anthropic.com>"
 ```
+
+### Deviations from the plan as executed
+
+1. **The `@Inject` field cannot be called `downloadManager`.** As written, the plan does
+   not compile: Kotlin synthesises `getDownloadManager()` for the property, which clashes
+   on its JVM signature with the `getDownloadManager()` override immediately below it.
+   Renamed to `injectedDownloadManager`.
+2. **The `RESTART` intent-filter was dropped.** `DownloadService` in Media3 1.10.1 exposes
+   no `ACTION_RESTART` constant (verified with `javap -constants`); the restart action is
+   one an app defines for a `Scheduler` to broadcast. We deliberately have no `Scheduler`,
+   so the filter was dead configuration.
+3. **The service is declared by fully-qualified name**, not the relative `.download.…`.
+   Relative names in a *library* manifest are expanded against the merged application id,
+   not the library namespace, so the plan's form would have resolved to the wrong class.
+4. **`@file:OptIn(UnstableApi::class)` omitted**, consistent with the rest of `:core:player` —
+   `UnstableApi` is not `@RequiresOptIn` in 1.10.1, so the annotation only produces a warning.
+5. **Pre-task probe: the catalog's streams are downloadable.** All three distinct HLS
+   sources are `#EXT-X-PLAYLIST-TYPE:VOD` with `#EXT-X-ENDLIST`, carry no `#EXT-X-KEY`, and
+   serve segments over plain HTTP 200 — so `DownloadHelper` has nothing to choke on. This
+   retires the risk-register item that was never closed at task 0.7.
+   **But `tos_ismc` has exactly one rendition — 1080p at 6.3 Mbps, ~10 min ≈ 480 MB.**
+   `DownloadHelper` at default parameters selects by renderer capability, not size, so
+   Task 3 must constrain `maxVideoBitrate` or that single video downloads half a gigabyte.
+
+> **Not verifiable here:** the emulator is API 33. `foregroundServiceType` and
+> `FOREGROUND_SERVICE_DATA_SYNC` are inert below API 34, so the manifest lines that prevent
+> `MissingForegroundServiceTypeException` are written from the platform contract and
+> confirmed only in the merged manifest — never observed working on a device that enforces them.
 
 ---
 
