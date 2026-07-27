@@ -24,3 +24,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "streamly"
 include(":app")
+include(":domain")
+include(":data")
+include(":core:player")
+include(":core:designsystem")

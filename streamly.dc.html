@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<style>
+  body{margin:0}
+  @keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.25}}
+  @keyframes toastIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#e9eaf2;font-family:-apple-system,system-ui,sans-serif;padding:40px;box-sizing:border-box">
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ isDark }}" hint-size="402,874">
+
+<div style="height:100%;display:flex;flex-direction:column;position:relative;background:{{ screenBg }};overflow:hidden">
+
+  <!-- ONBOARDING -->
+  <sc-if value="{{ isOnboarding }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 32px;box-sizing:border-box;background:{{ onboardingBg }};text-align:center">
+      <div style="width:88px;height:88px;border-radius:22px;background:rgba(255,255,255,0.18);margin-bottom:28px"></div>
+      <div style="color:#fff;font-size:28px;font-weight:800;line-height:1.2;margin-bottom:12px">Welcome to<br />{{ appName }}</div>
+      <div style="color:rgba(255,255,255,0.75);font-size:15px;line-height:1.5;margin-bottom:36px">Watch videos &amp; shorts, offline too.</div>
+      <button onClick="{{ continueGoogle }}" style="width:100%;padding:15px 0;border-radius:999px;border:none;background:#fff;color:{{ accentColor }};font-size:16px;font-weight:700;margin-bottom:12px;cursor:pointer">Continue with Google</button>
+      <button onClick="{{ signInEmail }}" style="width:100%;padding:15px 0;border-radius:999px;border:1.5px solid rgba(255,255,255,0.55);background:transparent;color:#fff;font-size:16px;font-weight:700;margin-bottom:20px;cursor:pointer">Sign in with email</button>
+      <button onClick="{{ continueGuest }}" style="border:none;background:transparent;color:rgba(255,255,255,0.85);font-size:14px;text-decoration:underline;cursor:pointer">Continue as guest</button>
+    </div>
+  </sc-if>
+
+  <!-- HOME FEED -->
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:54px 20px 14px;background:{{ accentColor }};display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div style="color:#fff;font-size:20px;font-weight:800">{{ appName }}</div>
+      <div style="display:flex;gap:8px">
+        <div style="width:30px;height:30px;border-radius:999px;background:rgba(255,255,255,0.28)"></div>
+        <div onClick="{{ goProfile }}" style="width:30px;height:30px;border-radius:999px;background:rgba(255,255,255,0.42);cursor:pointer"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;padding:14px 20px;flex-shrink:0;background:#fff">
+      <sc-for list="{{ chips }}" as="chip" hint-placeholder-count="3">
+        <div onClick="{{ chip.select }}" style="padding:8px 18px;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer;background:{{ chip.bg }};color:{{ chip.color }}">{{ chip.label }}</div>
+      </sc-for>
+    </div>
+    <div style="flex:1;overflow:auto;background:#f4f5fa;padding:16px 20px 90px">
+      <sc-for list="{{ filteredVideos }}" as="v" hint-placeholder-count="3">
+        <div onClick="{{ v.open }}" style="margin-bottom:22px;cursor:pointer">
+          <div style="position:relative;height:170px;border-radius:14px;background:linear-gradient(135deg,#dfe1ee,#c9cce4);display:flex;align-items:center;justify-content:center;margin-bottom:10px;overflow:hidden">
+            <div style="width:52px;height:52px;border-radius:999px;background:rgba(255,255,255,0.55);display:flex;align-items:center;justify-content:center">
+              <div style="width:0;height:0;border-top:10px solid transparent;border-bottom:10px solid transparent;border-left:16px solid #fff;margin-left:4px"></div>
+            </div>
+            <div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px">{{ v.duration }}</div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <div style="width:34px;height:34px;border-radius:999px;background:#d7d9ea;flex-shrink:0"></div>
+            <div>
+              <div style="font-size:15px;font-weight:700;color:#14162e;line-height:1.3;margin-bottom:3px">{{ v.title }}</div>
+              <div style="font-size:12.5px;color:#7a7f95">{{ v.channel }} · {{ v.views }}</div>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- SHORTS -->
+  <sc-if value="{{ isShorts }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;position:relative;background:#0d0e24;overflow:hidden" onWheel="{{ onShortsWheel }}">
+      <div style="position:absolute;top:54px;left:20px;color:#fff;font-size:12px;font-weight:800;letter-spacing:1.5px;z-index:5">SHORTS</div>
+      <sc-for list="{{ shorts }}" as="s" hint-placeholder-count="3">
+        <div style="{{ s.slideStyle }}">
+          <sc-if value="{{ s.active }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;top:80px;right:22px;display:flex;align-items:center;gap:6px;color:#fff;font-size:11px;font-weight:700;background:rgba(255,255,255,0.15);padding:5px 10px;border-radius:999px">
+              <div style="width:7px;height:7px;border-radius:999px;background:#ff4d4d;animation:pulseDot 1.1s ease-in-out infinite"></div>Playing
+            </div>
+          </sc-if>
+          <div style="position:absolute;left:20px;right:80px;bottom:70px;color:#fff">
+            <div style="font-weight:800;font-size:15px;margin-bottom:4px">{{ s.handle }} · {{ s.tag }}</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.75);line-height:1.4">{{ s.caption }}</div>
+          </div>
+          <div style="position:absolute;right:16px;bottom:76px;display:flex;flex-direction:column;gap:20px;align-items:center">
+            <div style="width:42px;height:42px;border-radius:999px;background:rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center">
+              <svg width="20" height="18" viewBox="0 0 20 18" fill="none"><path d="M10 17s-8-5-8-10.5A4.5 4.5 0 0110 4a4.5 4.5 0 018 2.5C18 12 10 17 10 17z" stroke="#fff" stroke-width="1.6"/></svg>
+            </div>
+            <div style="width:42px;height:42px;border-radius:999px;background:rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M17 9L1 2l4 7-4 7z" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+      <div style="position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px;z-index:5">
+        <sc-for list="{{ shortDots }}" as="d" hint-placeholder-count="3">
+          <div onClick="{{ d.goto }}" style="width:7px;height:7px;border-radius:999px;cursor:pointer;background:{{ d.color }}"></div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- PLAYER -->
+  <sc-if value="{{ isPlayer }}" hint-placeholder-val="{{ false }}">
+    <div style="height:230px;background:#0d0e24;position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <div onClick="{{ goBack }}" style="position:absolute;top:54px;left:16px;width:34px;height:34px;border-radius:999px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <svg width="9" height="16" viewBox="0 0 9 16"><path d="M8 1L1 8l7 7" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div onClick="{{ togglePlay }}" style="width:60px;height:60px;border-radius:999px;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <sc-if value="{{ playing }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:6px"><div style="width:6px;height:22px;background:#fff;border-radius:2px"></div><div style="width:6px;height:22px;background:#fff;border-radius:2px"></div></div>
+        </sc-if>
+        <sc-if value="{{ notPlaying }}" hint-placeholder-val="{{ false }}">
+          <div style="width:0;height:0;border-top:12px solid transparent;border-bottom:12px solid transparent;border-left:19px solid #fff;margin-left:5px"></div>
+        </sc-if>
+      </div>
+    </div>
+    <div style="flex:1;overflow:auto;background:#fff;padding:18px 20px">
+      <div style="font-size:17px;font-weight:800;color:#14162e;margin-bottom:4px;line-height:1.3">{{ currentVideo.title }}</div>
+      <sc-if value="{{ isOffline }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:12px;font-weight:700;color:#22c55e;margin-bottom:12px">Downloaded · playing offline</div>
+      </sc-if>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(0,0,0,0.06);margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:999px;background:#d7d9ea"></div>
+          <div style="font-size:14px;font-weight:700;color:#14162e">{{ currentVideo.channel }}</div>
+        </div>
+        <button onClick="{{ toggleSubscribe }}" style="padding:9px 18px;border-radius:999px;border:none;font-size:13px;font-weight:700;cursor:pointer;background:{{ subscribeBg }};color:{{ subscribeColor }}">{{ subscribeLabel }}</button>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onClick="{{ toggleLike }}" style="flex:1;padding:12px 0;border-radius:12px;border:none;font-size:13px;font-weight:700;cursor:pointer;background:{{ likeBg }};color:{{ likeColor }}">{{ likeLabel }}</button>
+        <button onClick="{{ doShare }}" style="flex:1;padding:12px 0;border-radius:12px;border:none;font-size:13px;font-weight:700;cursor:pointer;background:#f0f1f7;color:#14162e">Share</button>
+        <button onClick="{{ doDownload }}" style="flex:1;padding:12px 0;border-radius:12px;border:none;font-size:13px;font-weight:700;cursor:pointer;background:#f0f1f7;color:#14162e">{{ downloadLabel }}</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- DOWNLOADS -->
+  <sc-if value="{{ isDownloads }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:54px 20px 16px;background:#fff;flex-shrink:0;border-bottom:1px solid rgba(0,0,0,0.06)">
+      <div style="font-size:22px;font-weight:800;color:#14162e;margin-bottom:6px">Downloads</div>
+      <div style="font-size:13px;color:#7a7f95">{{ storageLine }}</div>
+    </div>
+    <div style="flex:1;overflow:auto;background:#fff;padding:14px 20px 90px">
+      <sc-for list="{{ downloadItems }}" as="d" hint-placeholder-count="2">
+        <div onClick="{{ d.open }}" style="display:flex;gap:12px;align-items:center;padding:12px 0;cursor:pointer">
+          <div style="width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,#dfe1ee,#c9cce4);flex-shrink:0"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14.5px;font-weight:700;color:#14162e;margin-bottom:8px">{{ d.title }}</div>
+            <sc-if value="{{ d.downloading }}" hint-placeholder-val="{{ false }}">
+              <div style="height:6px;border-radius:999px;background:#eceef5;overflow:hidden"><div style="{{ d.barStyle }}"></div></div>
+            </sc-if>
+            <sc-if value="{{ d.ready }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#22c55e"><div style="width:7px;height:7px;border-radius:999px;background:#22c55e"></div>Ready to play</div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- PROFILE -->
+  <sc-if value="{{ isProfile }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:54px 20px 26px;background:{{ accentColor }};flex-shrink:0;display:flex;flex-direction:column;align-items:center">
+      <div style="width:64px;height:64px;border-radius:999px;background:rgba(255,255,255,0.35);margin-bottom:10px"></div>
+      <div style="color:#fff;font-size:17px;font-weight:800;margin-bottom:2px">{{ userName }}</div>
+      <div style="color:rgba(255,255,255,0.72);font-size:12.5px">{{ userEmail }}</div>
+    </div>
+    <div style="flex:1;overflow:auto;background:#fff;padding:8px 20px">
+      <div onClick="{{ goDownloads }}" style="padding:16px 0;font-size:15px;font-weight:600;color:#14162e;border-bottom:1px solid rgba(0,0,0,0.06);cursor:pointer">Downloads</div>
+      <div onClick="{{ showComingSoon }}" style="padding:16px 0;font-size:15px;font-weight:600;color:#14162e;border-bottom:1px solid rgba(0,0,0,0.06);cursor:pointer">Watch history</div>
+      <div onClick="{{ showComingSoon }}" style="padding:16px 0;font-size:15px;font-weight:600;color:#14162e;border-bottom:1px solid rgba(0,0,0,0.06);cursor:pointer">Settings</div>
+      <div onClick="{{ openSignOut }}" style="padding:16px 0;font-size:15px;font-weight:700;color:#e6503f;cursor:pointer">Sign out</div>
+    </div>
+  </sc-if>
+
+  <!-- TAB BAR -->
+  <sc-if value="{{ showTabBar }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-around;align-items:center;padding:10px 8px 26px;background:rgba(255,255,255,0.96);border-top:1px solid rgba(0,0,0,0.06);z-index:4">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+        <div onClick="{{ t.go }}" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:{{ t.color }}" dangerouslySetInnerHTML="{{ t.iconHtml }}"></div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- SIGN OUT DIALOG -->
+  <sc-if value="{{ showSignOutDialog }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:20;padding:0 28px">
+      <div style="background:#fff;border-radius:18px;padding:24px 22px;width:100%;box-sizing:border-box">
+        <div style="font-size:17px;font-weight:800;color:#14162e;margin-bottom:8px">Sign out?</div>
+        <div style="font-size:13.5px;color:#7a7f95;line-height:1.5;margin-bottom:20px">You'll need to sign in again to see your downloads and history.</div>
+        <div style="display:flex;gap:10px">
+          <button onClick="{{ cancelSignOut }}" style="flex:1;padding:12px 0;border-radius:999px;border:none;font-size:14px;font-weight:700;cursor:pointer;background:#f0f1f7;color:#14162e">Cancel</button>
+          <button onClick="{{ confirmSignOut }}" style="flex:1;padding:12px 0;border-radius:999px;border:none;font-size:14px;font-weight:700;cursor:pointer;background:#e6503f;color:#fff">Sign out</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- TOAST -->
+  <sc-if value="{{ toastMsg }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;bottom:100px;left:50%;background:rgba(20,22,46,0.92);color:#fff;font-size:13px;font-weight:600;padding:10px 18px;border-radius:999px;z-index:30;animation:toastIn .2s ease-out;white-space:nowrap">{{ toastMsg }}</div>
+  </sc-if>
+
+</div>
+</x-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:480,&quot;height&quot;:940},&quot;appName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Streamly&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#7c3aed&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#4338ca&quot;,&quot;#4f46e5&quot;,&quot;#2563eb&quot;,&quot;#7c3aed&quot;]},&quot;userName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Anika Rahman&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;userEmail&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;anika@streamly.app&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const VIDEOS = [
+  { id:'v1', title:'Weekly recap: what shipped', channel:'DevChannel', views:'12K views', duration:'8:42', category:'Music' },
+  { id:'v2', title:'Media3 in 10 minutes', channel:'CodeLabs', views:'44K views', duration:'10:03', category:'All' },
+  { id:'v3', title:'Live coding: building a feed UI', channel:'CodeLabs', views:'3.1K watching', duration:'LIVE', category:'Live' },
+  { id:'v4', title:'Acoustic set — rooftop sessions', channel:'Aria Sound', views:'88K views', duration:'22:10', category:'Music' },
+];
+const SHORTS = [
+  { id:'s1', handle:'@handle', tag:'Quick tip #12', caption:'Autoplay on visible item only' },
+  { id:'s2', handle:'@ariasound', tag:'Rooftop mix', caption:'60 second live mix from tonight' },
+  { id:'s3', handle:'@codelabs', tag:'Media3 build', caption:'Building the shorts pager in a minute' },
+];
+const ICONS = {
+  home: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7v9a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1v-9z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+  shorts: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="6" y="2" width="12" height="20" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M10 9l5 3-5 3V9z" fill="currentColor"/></svg>',
+  downloads: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  profile: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+};
+
+class Component extends DCLogic {
+  state = {
+    screen: 'onboarding',
+    prevScreen: 'home',
+    filter: 'All',
+    shortIndex: 0,
+    currentVideoId: null,
+    isOffline: false,
+    playing: true,
+    subscribedIds: {},
+    likedIds: {},
+    downloads: [
+      { id:'v1', title:'Weekly recap', channel:'DevChannel', progress:78, status:'downloading' },
+      { id:'v2', title:'Media3 in 10 min', channel:'CodeLabs', progress:100, status:'ready' },
+    ],
+    showSignOutDialog: false,
+    toastMsg: '',
+    lastWheelTs: 0,
+  };
+
+  componentDidMount() {
+    this._interval = setInterval(() => {
+      this.setState(s => {
+        let changed = false;
+        const downloads = s.downloads.map(d => {
+          if (d.status === 'downloading') {
+            changed = true;
+            const p = Math.min(100, d.progress + 6 + Math.random() * 6);
+            return { ...d, progress: p, status: p >= 100 ? 'ready' : 'downloading' };
+          }
+          return d;
+        });
+        return changed ? { downloads } : null;
+      });
+    }, 500);
+  }
+  componentWillUnmount() { clearInterval(this._interval); }
+
+  toast(msg) {
+    clearTimeout(this._toastTimer);
+    this.setState({ toastMsg: msg });
+    this._toastTimer = setTimeout(() => this.setState({ toastMsg: '' }), 1600);
+  }
+
+  go(screen) { this.setState({ screen }); }
+  openPlayer(video, opts = {}) {
+    this.setState({
+      screen: 'player', prevScreen: opts.from || this.state.screen,
+      currentVideoId: video.id, isOffline: !!opts.offline, playing: true,
+    });
+  }
+  startDownload(video) {
+    this.setState(s => {
+      if (s.downloads.some(d => d.id === video.id)) return null;
+      return { downloads: [...s.downloads, { id: video.id, title: video.title, channel: video.channel, progress: 0, status: 'downloading' }] };
+    });
+    this.toast('Download started');
+  }
+
+  renderVals() {
+    const s = this.state;
+    const accentColor = this.props.accentColor ?? '#4338ca';
+    const appName = this.props.appName ?? 'Streamly';
+
+    const currentVideo = VIDEOS.find(v => v.id === s.currentVideoId) || VIDEOS[0];
+    const chips = ['All', 'Music', 'Live'].map(label => {
+      const active = s.filter === label;
+      return { label, select: () => this.setState({ filter: label }), bg: active ? accentColor : '#eceef5', color: active ? '#fff' : '#14162e' };
+    });
+    const filteredVideos = VIDEOS.filter(v => s.filter === 'All' || v.category === s.filter).map(v => ({
+      ...v, open: () => this.openPlayer(v, { from: 'home' }),
+    }));
+
+    const shorts = SHORTS.map((sh, i) => {
+      const offset = (i - s.shortIndex) * 100;
+      return {
+        ...sh, active: i === s.shortIndex,
+        slideStyle: `position:absolute;inset:0;transform:translateY(${offset}%);transition:transform .35s ease`,
+      };
+    });
+    const shortDots = SHORTS.map((sh, i) => ({ goto: () => this.setState({ shortIndex: i }), color: i === s.shortIndex ? '#fff' : 'rgba(255,255,255,0.35)' }));
+
+    const subscribed = !!s.subscribedIds[currentVideo.id];
+    const liked = !!s.likedIds[currentVideo.id];
+    const dl = s.downloads.find(d => d.id === currentVideo.id);
+    const downloadLabel = dl ? (dl.status === 'ready' ? 'Downloaded' : `${Math.round(dl.progress)}%`) : 'Download';
+
+    const downloadItems = s.downloads.map(d => ({
+      ...d, downloading: d.status === 'downloading', ready: d.status === 'ready',
+      barStyle: `height:100%;border-radius:999px;background:${accentColor};width:${d.progress}%;transition:width .4s linear`,
+      open: () => {
+        if (d.status === 'ready') {
+          const v = VIDEOS.find(v => v.id === d.id) || { id: d.id, title: d.title, channel: d.channel, duration: '' };
+          this.openPlayer(v, { from: 'downloads', offline: true });
+        } else this.toast('Still downloading…');
+      },
+    }));
+    const usedGB = (1.2 + s.downloads.reduce((sum, d) => sum + (d.progress / 100) * 0.35, 0)).toFixed(1);
+
+    const tabs = [
+      { key: 'home', icon: 'home', go: () => this.go('home') },
+      { key: 'shorts', icon: 'shorts', go: () => this.go('shorts') },
+      { key: 'downloads', icon: 'downloads', go: () => this.go('downloads') },
+      { key: 'profile', icon: 'profile', go: () => this.go('profile') },
+    ].map(t => ({
+      go: t.go, color: s.screen === t.key ? accentColor : '#a6a9bd',
+      iconHtml: { __html: ICONS[t.icon] },
+    }));
+
+    return {
+      isDark: s.screen !== 'downloads',
+      screenBg: s.screen === 'onboarding' ? 'transparent' : (s.screen === 'shorts' || s.screen === 'player' ? '#0d0e24' : '#fff'),
+      onboardingBg: `linear-gradient(160deg, ${accentColor}, #5b56e0)`,
+      accentColor, appName,
+
+      isOnboarding: s.screen === 'onboarding',
+      continueGoogle: () => this.go('home'),
+      signInEmail: () => this.go('home'),
+      continueGuest: () => this.go('home'),
+
+      isHome: s.screen === 'home',
+      goProfile: () => this.go('profile'),
+      chips, filteredVideos,
+
+      isShorts: s.screen === 'shorts',
+      shorts, shortDots,
+      onShortsWheel: (e) => {
+        const now = Date.now();
+        if (now - s.lastWheelTs < 400) return;
+        this.setState(st => ({
+          lastWheelTs: now,
+          shortIndex: Math.max(0, Math.min(SHORTS.length - 1, st.shortIndex + (e.deltaY > 0 ? 1 : -1))),
+        }));
+      },
+
+      isPlayer: s.screen === 'player',
+      currentVideo, isOffline: s.isOffline,
+      goBack: () => this.go(s.prevScreen),
+      playing: s.playing, notPlaying: !s.playing,
+      togglePlay: () => this.setState({ playing: !s.playing }),
+      subscribeLabel: subscribed ? 'Subscribed' : 'Subscribe',
+      subscribeBg: subscribed ? '#eceef5' : accentColor,
+      subscribeColor: subscribed ? '#14162e' : '#fff',
+      toggleSubscribe: () => this.setState(st => ({ subscribedIds: { ...st.subscribedIds, [currentVideo.id]: !subscribed } })),
+      likeLabel: liked ? 'Liked' : 'Like',
+      likeBg: liked ? accentColor : '#f0f1f7',
+      likeColor: liked ? '#fff' : '#14162e',
+      toggleLike: () => this.setState(st => ({ likedIds: { ...st.likedIds, [currentVideo.id]: !liked } })),
+      doShare: () => this.toast('Link copied'),
+      doDownload: () => { if (!dl) this.startDownload(currentVideo); },
+      downloadLabel,
+
+      isDownloads: s.screen === 'downloads',
+      storageLine: `${usedGB} GB used of 8 GB`,
+      downloadItems,
+      goDownloads: () => this.go('downloads'),
+
+      isProfile: s.screen === 'profile',
+      userName: this.props.userName ?? 'Anika Rahman',
+      userEmail: this.props.userEmail ?? 'anika@streamly.app',
+      showComingSoon: () => this.toast('Coming soon'),
+      openSignOut: () => this.setState({ showSignOutDialog: true }),
+
+      showTabBar: ['home', 'shorts', 'downloads', 'profile'].includes(s.screen),
+      tabs,
+
+      showSignOutDialog: s.showSignOutDialog,
+      cancelSignOut: () => this.setState({ showSignOutDialog: false }),
+      confirmSignOut: () => this.setState({
+        showSignOutDialog: false, screen: 'onboarding', currentVideoId: null,
+        subscribedIds: {}, likedIds: {}, isOffline: false,
+      }),
+
+      toastMsg: s.toastMsg,
+    };
+  }
+}
+</script>
+</body>
+</html>
