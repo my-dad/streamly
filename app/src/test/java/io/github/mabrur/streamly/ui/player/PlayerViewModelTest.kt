@@ -12,6 +12,7 @@ import io.github.mabrur.streamly.domain.repository.CatalogRepository
 import io.github.mabrur.streamly.domain.usecase.GetRelatedVideosUseCase
 import io.github.mabrur.streamly.domain.usecase.GetVideoDetailUseCase
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -78,6 +79,7 @@ private class FakeCatalogRepository(
     override suspend fun getProfile(): Result<UserProfile> = Result.failure(AppError.NotFound)
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class PlayerViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
