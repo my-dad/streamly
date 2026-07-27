@@ -9,6 +9,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -30,6 +31,7 @@ import io.github.mabrur.streamly.ui.placeholder.PlaceholderScreen
 
 @Composable
 fun StreamlyApp(
+    windowSizeClass: WindowSizeClass,
     modifier: Modifier = Modifier,
     viewModel: AppViewModel = hiltViewModel(),
 ) {
@@ -52,13 +54,18 @@ fun StreamlyApp(
     // stack rooted at Onboarding, and sign-in rebuilds it rooted at Home. That is the
     // "clear, don't push" requirement without any manual back-stack surgery.
     key(startKey) {
-        StreamlyNavHost(startKey = startKey, modifier = modifier)
+        StreamlyNavHost(
+            startKey = startKey,
+            windowSizeClass = windowSizeClass,
+            modifier = modifier,
+        )
     }
 }
 
 @Composable
 private fun StreamlyNavHost(
     startKey: StreamlyKey,
+    @Suppress("UNUSED_PARAMETER") windowSizeClass: WindowSizeClass,
     modifier: Modifier = Modifier,
 ) {
     val backStack = rememberNavBackStack(startKey)
