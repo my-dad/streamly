@@ -19,7 +19,9 @@ kotlinxCoroutines = "1.11.0"
 datastore = "1.2.1"
 
 media3 = "1.10.1"
-coil = "3.5.0"
+# 3.4.0, not 3.5.0: Coil 3.5.0 requires kotlin-stdlib 2.4.0, whose metadata AGP 9.3.1's
+# built-in Kotlin compiler cannot read (it reads to 2.3.0). 3.4.0 requires 2.3.10.
+coil = "3.4.0"
 
 junit = "4.13.2"
 turbine = "1.2.1"
@@ -61,10 +63,6 @@ ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.r
 ktor-client-mock = { group = "io.ktor", name = "ktor-client-mock", version.ref = "ktor" }
 ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
-
-# --- Kotlin ---
-# Pinned only as a constraint in :core:designsystem — see that module's build file.
-kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version = { strictly = "2.3.21" } }
 
 # --- Kotlinx ---
 kotlinx-serialization-json ={ group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }

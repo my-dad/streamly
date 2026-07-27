@@ -36,13 +36,5 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
 
-    constraints {
-        // Coil 3.5.0 constrains kotlin-stdlib to 2.4.0, whose metadata AGP 9.3.1's
-        // built-in Kotlin compiler (reads up to 2.3.0) rejects outright. Pin to the
-        // version the rest of the project already resolves to. Drop this when the
-        // toolchain's Kotlin catches up to Coil's floor.
-        implementation(libs.kotlin.stdlib)
-    }
-
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
