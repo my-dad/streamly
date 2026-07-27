@@ -122,6 +122,34 @@ Per screen: `XxxUiState` (immutable data class), sealed `XxxIntent`, sealed `Xxx
 
 ## Git & workflow
 
+### Branching
+
+`master` is the integration branch. Never commit to it directly.
+
+- **One branch per feature.** Starting a new feature — or a new implementation plan —
+  means cutting a new branch off `master` first. Never continue a finished feature's
+  branch into the next one; a branch's name must always describe everything on it.
+- **Branch type follows the nature of the task**, matching the conventional-commit
+  type the work will use:
+
+  | Nature of work | Prefix | Example |
+  |---|---|---|
+  | New feature or screen | `feat/` | `feat/home-feed` |
+  | Bug in shipped behaviour | `bugfix/` | `bugfix/player-audio-bleed` |
+  | Broken `master` / blocked build | `hotfix/` | `hotfix/aar-metadata-sdk37` |
+  | Behaviour-preserving cleanup | `refactor/` | `refactor/shorts-pool-extraction` |
+  | Build, deps, tooling | `chore/` | `chore/bump-media3` |
+  | Docs only | `docs/` | `docs/decision-records` |
+
+- **Bugs are traced back to the branch that introduced them.** Before opening a
+  `bugfix/` branch, find the commit that caused it (`git log`, `git bisect`) and name
+  the originating feature in the branch name and the fix commit body. If the feature's
+  branch is unmerged, fix it there instead of opening a new one.
+- Merge to `master` only with a green test suite. Delete the branch after merge.
+- One plan = one branch = one merge, unless a plan is explicitly split.
+
+### Commits
+
 - Conventional commits: `feat(shorts): pooled pager playback`, `fix(player): release on nav exit`.
 - Small commits, buildable at every commit where practical.
 - Every agent-assisted commit includes the trailer (already in `.gitmessage` via `commit.template`):

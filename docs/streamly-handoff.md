@@ -6,6 +6,20 @@
 
 ---
 
+## 0. Design Handoff from claude design 
+
+Use the claude_design MCP (https://api.anthropic.com/v1/design/mcp, auth via /design-login) to import this project:
+https://claude.ai/design/p/2614aefb-3c8e-43fe-89e7-f9aca9658f02?file=Streamly.dc.html
+
+Focus on these files (the whole project is readable):
+- `Streamly.dc.html`
+
+Also read these files the selection imports:
+- `ios-frame.jsx`
+- `support.js`
+
+Implement: `Streamly.dc.html`
+
 ## 1. Read this first — how the app is graded
 
 This is not a feature-count contest. The rubric is:
