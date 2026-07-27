@@ -28,6 +28,7 @@ import io.github.mabrur.streamly.ui.home.HomeRoute
 import io.github.mabrur.streamly.ui.navigation.StreamlyKey
 import io.github.mabrur.streamly.ui.navigation.TopLevelDestination
 import io.github.mabrur.streamly.ui.navigation.startKeyFor
+import io.github.mabrur.streamly.ui.onboarding.OnboardingRoute
 import io.github.mabrur.streamly.ui.placeholder.PlaceholderScreen
 
 @Composable
@@ -116,7 +117,7 @@ private fun StreamlyNavHost(
                 rememberViewModelStoreNavEntryDecorator(),
             ),
             entryProvider = entryProvider<NavKey> {
-                entry<StreamlyKey.Onboarding> { PlaceholderScreen("Onboarding") }
+                entry<StreamlyKey.Onboarding> { OnboardingRoute() }
                 entry<StreamlyKey.Home> {
                     HomeRoute(
                         onOpenPlayer = { videoId ->
