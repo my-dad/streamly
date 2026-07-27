@@ -40,6 +40,7 @@ import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
 import androidx.media3.ui.compose.modifiers.resizeWithContentScale
 import androidx.media3.ui.compose.state.rememberPresentationState
 import io.github.mabrur.streamly.core.designsystem.component.ContentState
+import io.github.mabrur.streamly.core.designsystem.theme.StreamlyColors
 import io.github.mabrur.streamly.core.designsystem.theme.StreamlyShapes
 
 @Composable
@@ -228,7 +229,7 @@ private fun PlayingBadge(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .size(7.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFFF4D4D).copy(alpha = dotAlpha)),
+                .background(StreamlyColors.LiveDot.copy(alpha = dotAlpha)),
         )
         Text(
             text = "Playing",

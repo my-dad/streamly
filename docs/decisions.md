@@ -355,3 +355,65 @@ while any download is in progress, and stops the moment none is.
 **Consequence:** "progress comes from observing `DownloadManager` into a Flow" is true of
 where the numbers come from, not of when they are read. Nothing is interpolated: a stalled
 download still visibly stalls, which a timer-driven fake progress bar would hide.
+
+---
+
+## D-017 — Design pass applied last; PRD outranks the design on all three conflicts
+
+**Status:** Accepted · 2026-07-27
+
+*(Numbered D-017, not D-010 as the design plan states. This plan was written before the
+Downloads plan executed and took D-009/D-010, and Shorts took D-013/D-014. `decisions.md`
+is append-only, so the record takes the next free id rather than the one the plan predicted.)*
+
+The visual design in `streamly.dc.html` is applied as a final presentation-layer pass after
+all functionality works, rather than being built into each screen from the start.
+
+PRD §1 scores pixel-perfect UI at roughly zero and names visual polish as the first thing to
+cut. Sequencing the design last keeps it off the critical path for the 75% that Media3,
+architecture, and state actually carry, and makes it droppable without structural damage.
+
+Where the design and PRD §9 disagree, the PRD wins — `streamly-handoff.md` line 297 states
+this explicitly:
+
+1. The design's Player screen has no up-next list; §9 requires one. **Kept**, below the
+   action row.
+2. The design's Downloads rows have no remove control; §9 requires one. **Kept**, as a
+   trailing icon button.
+3. The design's "Sign in with email" navigates directly with no input field. The plan
+   resolved this one *in favour of the design* — and that resolution was **overruled during
+   execution**. It contradicts the rule the other two follow: §9 requires Onboarding to
+   offer email sign-in, and the PRD outranks the design. By then the email path was also
+   verified working on a device, so following the design would have deleted a working,
+   tested, verified flow to save a `TextField`. The field, its validation and both tests
+   stay; only the styling changed.
+
+Dynamic colour was removed from the theme: the design specifies a fixed accent, and letting
+device wallpaper repaint the app would defeat the purpose of shipping a design at all.
+
+**Consequence:** `StreamlyColors` is the only file permitted to declare a colour literal, and
+the design audit enforces it with a grep. All three PRD/design conflicts now resolve the same
+way, which is easier to defend than two-out-of-three.
+
+---
+
+## D-018 — Toasts travel by `Effect`, not in `UiState`
+
+**Status:** Accepted · 2026-07-27
+
+The design pass specified adding `toastMessage: String?` to each screen's `UiState`, with the
+ViewModel clearing it after a delay. That is not what was built.
+
+`AGENTS.md` states as a hard constraint that one-shot events — naming snackbars explicitly —
+travel through an `Effect` Channel and never through state. A toast is precisely that. Storing
+it in state would also replay the toast on every configuration change, because the state would
+be re-collected with the message still set.
+
+Instead the ViewModel emits an `Effect` (`PlayerEffect.DownloadStarted`, `LinkCopied`,
+`ProfileEffect.ShowToast`, `DownloadsEffect.ShowToast`) and a route-local `rememberToastState()`
+owns only how long the pill stays up. The plan's stated reason for putting the message in
+state was ViewModel testability; that is preserved, because what the tests assert is the
+effect rather than a timer.
+
+**Consequence:** display duration is presentation state and is not unit-tested. What is tested
+is that the right effect is raised — which is the part that can regress silently.

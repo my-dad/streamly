@@ -33,6 +33,9 @@ object StreamlyColors {
     val VideoBackground = Color(0xFF0D0E24)
 
     val Ready = Color(0xFF22C55E)
+
+    /** The pulsing "Playing" dot on Shorts. */
+    val LiveDot = Color(0xFFFF4D4D)
     val Danger = Color(0xFFE6503F)
 
     val PlaceholderStart = Color(0xFFDFE1EE)
