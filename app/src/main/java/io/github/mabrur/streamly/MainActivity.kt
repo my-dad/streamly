@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.mabrur.streamly.core.designsystem.theme.StreamlyTheme
+import io.github.mabrur.streamly.ui.StreamlyApp
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -14,7 +15,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             StreamlyTheme {
-                // Replaced by StreamlyApp() in Task 5.
+                StreamlyApp()
             }
         }
     }
