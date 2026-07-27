@@ -2,6 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!--
+        Required by Coil (thumbnails) and Media3 (HLS playback and downloads).
+        Without it, Coil's OkHttp dispatcher throws SecurityException on a background
+        thread and takes the whole process down the moment the Home feed renders.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name=".StreamlyApplication"
         android:allowBackup="true"
