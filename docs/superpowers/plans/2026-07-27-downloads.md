@@ -472,7 +472,7 @@ git commit -m "feat(downloads): DownloadManager, service, and manifest plumbing"
 - Consumes: `DownloadRepository` (declared in `:domain` back in the foundation plan), `DownloadManager`, `downloadStatusFor`.
 - Produces: a bound `DownloadRepository`, so `:app` injects only the domain interface.
 
-- [ ] **Step 1: Write the implementation**
+- [x] **Step 1: Write the implementation**
 
 Create `core/player/src/main/java/io/github/mabrur/streamly/core/player/download/DownloadRepositoryImpl.kt`:
 
@@ -630,7 +630,7 @@ private fun Download.toDomain(): DownloadItem {
 }
 ```
 
-- [ ] **Step 2: Bind it**
+- [x] **Step 2: Bind it**
 
 Append to `DownloadModule.kt`, as a separate module in the same file:
 
@@ -647,18 +647,39 @@ abstract class DownloadBindingModule {
 
 adding imports `dagger.Binds`, `io.github.mabrur.streamly.domain.repository.DownloadRepository`.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `./gradlew :app:compileDebugKotlin`
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add core/player/src/main/java/io/github/mabrur/streamly/core/player/download
 git commit -m "feat(downloads): repository with real DownloadManager progress" \
            -m "Co-authored-by: Claude <noreply@anthropic.com>"
 ```
+
+### Deviations from the plan as executed
+
+1. **`DownloadHelper.Callback.onPrepared` takes two arguments in Media3 1.10.1**
+   (`onPrepared(DownloadHelper, boolean)`), not one. The plan's single-argument override
+   does not compile.
+2. **Track selection is constrained to 1.5 Mbps of video** — not in the plan at all. Left
+   at defaults, `DownloadHelper` selects renditions by decoder capability alone and the
+   catalog's 1080p sources come to ~480 MB each. The constraint is deliberately soft
+   (`DefaultTrackSelector` still picks the smallest rendition when all of them exceed the
+   cap) so a single-rendition stream downloads rather than yielding an audio-only file.
+3. **`TrackSelectionParameters.Builder()` with no Context.** The Context overload
+   constrains selection to the current display size — a playback concern that must not
+   leak into what gets stored offline.
+4. **`@file:OptIn(UnstableApi::class)` omitted**, as in Task 2.
+
+> **Still unmeasured:** eight of the eighteen catalog videos point at `tos_ismc`, which
+> publishes exactly one rendition — 1080p at 6.3 Mbps, ~10 minutes. No track selection can
+> shrink it, so those eight download at roughly half a gigabyte each. The other ten are
+> bounded by the cap. Whether to repoint those eight at a multi-rendition source is a
+> catalog decision, not a code one.
 
 ---
 

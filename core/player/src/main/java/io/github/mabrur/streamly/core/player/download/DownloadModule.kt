@@ -5,11 +5,13 @@ import androidx.media3.database.DatabaseProvider
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.offline.DownloadManager
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import io.github.mabrur.streamly.domain.repository.DownloadRepository
 import java.util.concurrent.Executors
 import javax.inject.Named
 import javax.inject.Singleton
@@ -44,4 +46,14 @@ object DownloadModule {
     }
 
     private const val MAX_PARALLEL_DOWNLOADS = 2
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class DownloadBindingModule {
+
+    /** `:app` injects the domain interface; the Media3 implementation never leaves here. */
+    @Binds
+    @Singleton
+    abstract fun bindDownloadRepository(impl: DownloadRepositoryImpl): DownloadRepository
 }
