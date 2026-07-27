@@ -1024,7 +1024,7 @@ Suite after this task: **109 tests, 0 failures.**
 
 ## Task 5: Wire the Player download button and notification permission
 
-- [ ] **Step 1: Inject the repository into `PlayerViewModel`**
+- [x] **Step 1: Inject the repository into `PlayerViewModel`**
 
 Add the constructor parameter and replace the stubbed `DownloadClicked` branch:
 
@@ -1070,7 +1070,7 @@ and add:
     }
 ```
 
-- [ ] **Step 2: Request `POST_NOTIFICATIONS` at runtime**
+- [x] **Step 2: Request `POST_NOTIFICATIONS` at runtime**
 
 In `MainActivity`, add inside `onCreate` before `setContent`:
 
@@ -1086,7 +1086,7 @@ with imports `android.Manifest`, `android.os.Build`, `androidx.activity.result.c
 > `minSdk` is 25, so the version guard is mandatory — the permission does not exist below 33
 > and requesting it unguarded throws.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `./gradlew :app:compileDebugKotlin && ./gradlew testDebugUnitTest`
 Expected: `BUILD SUCCESSFUL`, all tests pass.
@@ -1100,13 +1100,28 @@ Expected: `BUILD SUCCESSFUL`, all tests pass.
   6. Tap **Remove** → the item disappears and storage-used drops.
   7. Kill and relaunch the app → completed downloads are still listed.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add app/src/main
 git commit -m "feat(downloads): wire player download action and notification permission" \
            -m "Co-authored-by: Claude <noreply@anthropic.com>"
 ```
+
+### Deviations from the plan as executed
+
+1. **Download failures are handled.** The plan's branch calls `downloadRepository.download(it)`
+   bare. `DownloadHelper` parses the playlist over the network, so an `IOException` there
+   would escape the coroutine and take the Player screen down on a bad connection. Wrapped
+   in `runCatching`, with a new `PlayerEffect.DownloadFailed` for the failure path.
+2. **`DownloadStarted` is actually surfaced.** `PlayerRoute` collected it into `Unit` with a
+   comment deferring to this plan; leaving it there would mean the Download button gives no
+   feedback whatsoever. The route now hosts a `SnackbarHost` and shows a message for both
+   outcomes.
+3. **Two extra tests** beyond the plan's one: tapping Download before the video loads must
+   be a no-op, and a failing download must report rather than crash.
+
+Suite after this task: **112 tests, 0 failures.**
 
 ---
 

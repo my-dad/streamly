@@ -7,6 +7,8 @@ import androidx.media3.common.Player
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.mabrur.streamly.core.player.PlayerHolder
 import io.github.mabrur.streamly.domain.error.AppError
+import io.github.mabrur.streamly.domain.model.Video
+import io.github.mabrur.streamly.domain.repository.DownloadRepository
 import io.github.mabrur.streamly.domain.usecase.GetRelatedVideosUseCase
 import io.github.mabrur.streamly.domain.usecase.GetVideoDetailUseCase
 import io.github.mabrur.streamly.ui.home.toUi
@@ -25,9 +27,16 @@ class PlayerViewModel @Inject constructor(
     private val getVideoDetail: GetVideoDetailUseCase,
     private val getRelatedVideos: GetRelatedVideosUseCase,
     private val playerHolder: PlayerHolder,
+    private val downloadRepository: DownloadRepository,
 ) : ViewModel() {
 
     private var videoId: String? = null
+
+    /**
+     * The loaded domain object, kept because [PlayerUiState] holds a [VideoUi] which has
+     * no `hlsUrl` — and a download needs the stream, not the display strings.
+     */
+    private var currentVideo: Video? = null
 
     private val _state = MutableStateFlow(PlayerUiState())
     val state: StateFlow<PlayerUiState> = _state.asStateFlow()
@@ -50,9 +59,14 @@ class PlayerViewModel @Inject constructor(
             is PlayerIntent.RelatedClicked -> viewModelScope.launch {
                 _effects.send(PlayerEffect.OpenVideo(intent.videoId))
             }
-            // Wired to the real DownloadRepository in the Downloads plan.
             PlayerIntent.DownloadClicked -> viewModelScope.launch {
-                _effects.send(PlayerEffect.DownloadStarted)
+                val video = currentVideo ?: return@launch
+                // DownloadHelper parses the HLS playlist over the network, so this both
+                // takes a moment and can fail. An uncaught IOException here would escape
+                // the coroutine and take the screen down on a bad connection.
+                runCatching { downloadRepository.download(video) }
+                    .onSuccess { _effects.send(PlayerEffect.DownloadStarted) }
+                    .onFailure { _effects.send(PlayerEffect.DownloadFailed) }
             }
         }
     }
@@ -71,6 +85,7 @@ class PlayerViewModel @Inject constructor(
 
             getVideoDetail(id)
                 .onSuccess { video ->
+                    currentVideo = video
                     playerHolder.setMedia(video.hlsUrl, startPositionMs = 0L)
                     val related = getRelatedVideos(id).getOrDefault(emptyList())
                     _state.update {

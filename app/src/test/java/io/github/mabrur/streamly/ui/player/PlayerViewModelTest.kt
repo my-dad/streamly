@@ -8,13 +8,18 @@ import io.github.mabrur.streamly.domain.model.HomeFeed
 import io.github.mabrur.streamly.domain.model.Short
 import io.github.mabrur.streamly.domain.model.UserProfile
 import io.github.mabrur.streamly.domain.model.Video
+import io.github.mabrur.streamly.domain.model.DownloadItem
 import io.github.mabrur.streamly.domain.repository.CatalogRepository
+import io.github.mabrur.streamly.domain.repository.DownloadRepository
 import io.github.mabrur.streamly.domain.usecase.GetRelatedVideosUseCase
 import io.github.mabrur.streamly.domain.usecase.GetVideoDetailUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -36,6 +41,18 @@ private fun video(id: String) = Video(
     publishedAtEpochSeconds = 1_000L,
     category = "Tech",
 )
+
+private class FakeDownloadRepository(
+    private val failure: Throwable? = null,
+) : DownloadRepository {
+    val requested = mutableListOf<String>()
+    override val downloads: Flow<List<DownloadItem>> = flowOf(emptyList())
+    override suspend fun download(video: Video) {
+        failure?.let { throw it }
+        requested += video.id
+    }
+    override suspend fun remove(videoId: String) { requested -= videoId }
+}
 
 private class FakePlayerHolder : PlayerHolder {
     /**
@@ -97,12 +114,14 @@ class PlayerViewModelTest {
         failure: AppError? = null,
         holder: FakePlayerHolder = FakePlayerHolder(),
         load: Boolean = true,
+        downloadRepository: DownloadRepository = FakeDownloadRepository(),
     ): Pair<PlayerViewModel, FakePlayerHolder> {
         val repository = FakeCatalogRepository(videos, failure)
         val vm = PlayerViewModel(
             getVideoDetail = GetVideoDetailUseCase(repository),
             getRelatedVideos = GetRelatedVideosUseCase(repository),
             playerHolder = holder,
+            downloadRepository = downloadRepository,
         )
         if (load) vm.onIntent(PlayerIntent.Load(videoId))
         return vm to holder
@@ -190,5 +209,47 @@ class PlayerViewModelTest {
         vm.invokeOnCleared()
 
         assertEquals(1, holder.releaseCount)
+    }
+
+    @Test
+    fun `DownloadClicked forwards the loaded video to the repository`() = runTest {
+        val downloads = FakeDownloadRepository()
+        val (vm, _) = viewModel(downloadRepository = downloads)
+        runCurrent()
+
+        vm.onIntent(PlayerIntent.DownloadClicked)
+        runCurrent()
+
+        assertEquals(listOf("v01"), downloads.requested)
+        vm.effects.test {
+            assertEquals(PlayerEffect.DownloadStarted, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `DownloadClicked before the video loads does nothing`() = runTest {
+        val downloads = FakeDownloadRepository()
+        val (vm, _) = viewModel(downloadRepository = downloads, load = false)
+
+        vm.onIntent(PlayerIntent.DownloadClicked)
+        runCurrent()
+
+        assertEquals(emptyList<String>(), downloads.requested)
+    }
+
+    @Test
+    fun `a failing download reports rather than crashing the screen`() = runTest {
+        val downloads = FakeDownloadRepository(failure = java.io.IOException("no playlist"))
+        val (vm, _) = viewModel(downloadRepository = downloads)
+        runCurrent()
+
+        vm.onIntent(PlayerIntent.DownloadClicked)
+        runCurrent()
+
+        vm.effects.test {
+            assertEquals(PlayerEffect.DownloadFailed, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

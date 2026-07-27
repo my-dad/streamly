@@ -32,4 +32,5 @@ sealed interface PlayerEffect {
     /** Handled at the nav host by *replacing* the top key — see D-005 rationale. */
     data class OpenVideo(val videoId: String) : PlayerEffect
     data object DownloadStarted : PlayerEffect
+    data object DownloadFailed : PlayerEffect
 }
