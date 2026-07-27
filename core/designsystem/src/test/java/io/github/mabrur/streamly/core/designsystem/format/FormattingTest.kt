@@ -80,4 +80,11 @@ class FormattingTest {
         assertEquals("0:00", formatDuration(0))
         assertEquals("0:00", formatDuration(-5_000))
     }
+
+    @Test
+    fun `compact count has no unit suffix`() {
+        assertEquals("12", formatCompactCount(12))
+        assertEquals("1.5K", formatCompactCount(1_500))
+        assertEquals("8.4M", formatCompactCount(8_420_000))
+    }
 }

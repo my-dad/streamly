@@ -2,13 +2,16 @@ package io.github.mabrur.streamly.core.designsystem.format
 
 import java.util.Locale
 
+/** "1.5K", "12", "8.4M" — no unit suffix. */
+fun formatCompactCount(count: Long): String = when {
+    count >= 1_000_000_000 -> compact(count, 1_000_000_000, "B")
+    count >= 1_000_000 -> compact(count, 1_000_000, "M")
+    count >= 1_000 -> compact(count, 1_000, "K")
+    else -> count.toString()
+}
+
 fun formatViewCount(count: Long): String {
-    val label = when {
-        count >= 1_000_000_000 -> compact(count, 1_000_000_000, "B")
-        count >= 1_000_000 -> compact(count, 1_000_000, "M")
-        count >= 1_000 -> compact(count, 1_000, "K")
-        else -> count.toString()
-    }
+    val label = formatCompactCount(count)
     return if (count == 1L) "$label view" else "$label views"
 }
 

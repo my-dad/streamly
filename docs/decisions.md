@@ -203,3 +203,23 @@ classpath as a transitive of the artifact it replaces.
 `com.google.dagger:hilt-android`, which supports `@AndroidEntryPoint` on Fragments and
 so declares it. That cannot be removed without dropping Hilt. No Fragment is subclassed
 or referenced anywhere in the source, which is what the constraint actually forbids.
+
+---
+
+## D-013 — Shorts has no `Effect` type
+
+**Status:** Accepted · 2026-07-27
+
+`AGENTS.md` requires every screen to define `XxxUiState`, `XxxIntent`, `XxxEffect` and
+`XxxViewModel`. `ShortsContract.kt` defines three of the four: there is no `ShortsEffect`.
+
+Shorts is a self-contained surface. It navigates nowhere, raises no snackbar, and opens no
+dialog — the only outbound signal is the pager settling, which is an *intent* travelling up,
+not an effect travelling down. An empty sealed interface plus an unused `Channel` and an
+unused `LaunchedEffect` collector in the route would be four pieces of ceremony that no
+call site ever exercises, and dead code in a take-home reads worse than a documented gap.
+
+**Consequence:** if Shorts later grows a one-shot event — "open this creator's channel",
+an error snackbar distinct from the inline error state — the `Effect` channel goes in then,
+matching `HomeViewModel`'s existing pattern exactly. Until then, every other screen keeps
+the full contract and this is the one deliberate exception.
