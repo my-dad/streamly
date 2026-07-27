@@ -21,10 +21,10 @@ compiles and its unit tests pass.
       device with real formatted metadata*, error/Retry path and scroll preservation not yet
       exercised
 - [ ] Profile + sign-out confirmation — built and unit-tested; not yet opened on a device
-- [ ] Shorts — vertical pager, pooled players — built and wired; on an emulator the pool
-      alternates between exactly two slots across all 6 shorts, releases on leaving the tab,
-      and survives rotation with the settled page intact. *Audio bleed — the check that
-      actually grades this feature — has not been verified by ear*
+- [x] **Shorts — vertical pager, pooled players** — verified on an emulator: video renders
+      and plays, exactly one `AudioTrack` is ever in `started` state (measured via
+      `dumpsys audio`) including under fast swiping, backgrounding stops audio and returning
+      resumes it, leaving the tab releases the pool, and rotation preserves the settled page
 - [ ] Downloads — real progress, offline playback, remove — download state mapper done and
       tested; the download stack is not built
 - [ ] Adaptive layout via `WindowSizeClass` — not started
@@ -115,6 +115,9 @@ This list grows as features land; it currently covers what is built.
 
 ## Known limitations
 
+- **Shorts restart from the beginning when you swipe back to them.** The pool holds only
+  the settled page and its successor, so paging backwards re-prepares the stream at 0
+  rather than resuming where you left it. Deliberate — it is what a shorts feed does.
 - **The Player screen does not adapt to landscape.** The 16:9 stage takes the full width, so
   in landscape it consumes the whole height and pushes the title, Download button, controls
   and up-next list off-screen with no scroll. Playback itself is correct and rotation-safe.
