@@ -8,9 +8,7 @@ plugins {
 android {
     namespace = "io.github.mabrur.streamly.data"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
+        version = release(37)
     }
     defaultConfig {
         minSdk = 25

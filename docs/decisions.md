@@ -90,3 +90,43 @@ that must themselves be correct and tested, for no gain the reviewer can see.
 **Consequence:** `runCatching` must never be used in a repository. It catches
 `CancellationException` and silently breaks structured concurrency. Every repository
 uses an explicit `catching` helper that rethrows `CancellationException` first.
+
+---
+
+> **Numbering note:** D-007 through D-010 are pre-allocated by the remaining
+> implementation plans, which reference those IDs in code comments. Records written
+> outside a plan therefore start at D-011 to avoid renumbering them.
+
+---
+
+## D-011 — `compileSdk` is 37; Coil pinned to 3.4.0
+
+**Status:** Accepted · 2026-07-27
+
+Two build-environment constraints stated in the plans turned out to be unworkable as
+written, and were resolved in the direction that leaves runtime behaviour unchanged.
+
+**`compileSdk` 36 → 37.** Seven dependencies the plans pin — `core-ktx` 1.19.0,
+`lifecycle` 2.11.0 (three artifacts), and `hilt-navigation-compose` 1.4.0 (two
+artifacts) — publish AAR metadata requiring consumers to compile against API 37.
+`checkDebugAarMetadata` fails the build outright, so `assembleDebug` and every test
+task were blocked. `compileSdk` only governs which APIs are compilable;
+**`targetSdk` stays 36 and `minSdk` stays 25**, so no runtime behaviour changes.
+
+The alternative — downgrading all seven — would have dragged
+`lifecycle-viewmodel-navigation3` down with them. That artifact provides
+`rememberViewModelStoreNavEntryDecorator`, without which no screen ViewModel is
+scoped to its `NavEntry`, `onCleared()` never fires on pop, and the `ExoPlayer`
+leaks. Losing it to preserve a compile-time constant would trade the
+highest-weighted rubric item for nothing.
+
+**Coil 3.5.0 → 3.4.0.** Coil 3.5.0 requires `kotlin-stdlib` 2.4.0, whose metadata
+version AGP 9.3.1's built-in Kotlin compiler cannot read (it reads to 2.3.0). Coil
+3.4.0 requires 2.3.10 and resolves cleanly. Forcing `kotlin-stdlib` back to 2.3.21
+with `strictly` also compiles, but runs Coil against an older stdlib than it was
+built with, risking `NoSuchMethodError` on image loads — a failure that would not
+surface until the Home feed existed. Downgrading Coil removes the risk rather than
+deferring it.
+
+**Consequence:** the AGENTS.md rule "never bump AGP, Kotlin, or Compose compiler
+versions" is intact — none of those moved. `compileSdk` is not on that list.
