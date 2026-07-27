@@ -955,7 +955,7 @@ Already recorded as D-012.
 
 ## Task 4: Documentation
 
-- [ ] **Step 1: Fill in the agent log**
+- [x] **Step 1: Fill in the agent log**
 
 `docs/agent-log.md` is still the empty template, and §10 of the PRD counts it as workflow
 evidence. Replace it with real entries — one per plan executed, using the actual prompts:
@@ -982,7 +982,7 @@ leaked an ExoPlayer per Player-screen visit while appearing to work.
 
 Add one entry per subsequent working session. **No secrets, no personal data.**
 
-- [ ] **Step 2: Write the README**
+- [x] **Step 2: Write the README**
 
 Replace `README.md`. Tick **only** what you have genuinely verified:
 
@@ -1076,7 +1076,24 @@ appearing to work correctly (see D-007).
   state mapper, the shorts pool policy, and all display formatters.
 ```
 
-- [ ] **Step 3: Commit**
+### Deviation: the README was not replaced
+
+Step 2 specifies replacing `README.md` wholesale with the template above. It was not.
+The README has been maintained incrementally since Phase 4 and is already longer and more
+specific than the template — every status line now carries the evidence behind its tick, and
+the Known Limitations section documents things the template has no slot for (the ~500 MB
+catalog videos, the unverifiable API 34+ manifest lines, no reboot resume). Overwriting it
+would have deleted load-bearing content that `AGENTS.md` explicitly protects.
+
+What was done instead: audited the existing README against the template's required sections
+— all present — and corrected two things the merge had made inaccurate. The architecture
+prose claimed every screen defines a sealed `Effect`, which Shorts deliberately does not
+(D-013), and the post-merge cross-surface audio check was not recorded anywhere.
+
+Likewise Step 1's agent-log template was already superseded; entries were appended for the
+Shorts, Downloads, and integration sessions rather than the file being replaced.
+
+- [x] **Step 3: Commit**
 
 ```bash
 git add README.md docs/agent-log.md

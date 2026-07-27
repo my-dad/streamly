@@ -32,6 +32,11 @@ compiles and its unit tests pass.
       force-stop and relaunch while still offline leaves the download listed and playable
 - [ ] Adaptive layout via `WindowSizeClass` — not started
 
+Once Shorts and Downloads were merged together, the integrated build was re-checked for the
+one failure neither branch could produce alone — audio bleeding between the two playback
+surfaces. Walking Shorts → Home → Player → Shorts → Downloads, at most one `AudioTrack` is
+ever in `started` state, and leaving either surface drops it to zero.
+
 The device checks that gate these are listed per-feature in the corresponding plan under
 `docs/superpowers/plans/`. They cover rotation safety, player release and leak checks, audio
 bleed, and offline playback — none of which a unit test can establish. `docs/streamly-build-plan.md`
@@ -59,7 +64,9 @@ call against over-modularizing a project this size, recorded as D-001.
 
 Every screen follows the same MVI contract: an immutable `UiState`, a sealed `Intent`, and a
 sealed `Effect` for one-shot events. ViewModels expose `state` and `onIntent` — never a
-`MutableStateFlow`, never a navigation lambda. Loading, empty, and error states are modelled
+`MutableStateFlow`, never a navigation lambda. Shorts is the one deliberate exception: it
+navigates nowhere and raises nothing, so it defines no `Effect` rather than carrying an
+empty channel no call site ever uses. That deviation is recorded as D-013. Loading, empty, and error states are modelled
 inside every `UiState`, with errors as a sealed `AppError` rather than a raw `String`, and
 rendered through one shared `ContentState` wrapper.
 
