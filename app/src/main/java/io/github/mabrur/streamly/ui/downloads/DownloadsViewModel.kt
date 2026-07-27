@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.mabrur.streamly.core.designsystem.format.formatBytes
+import io.github.mabrur.streamly.core.designsystem.format.formatStorageLine
 import io.github.mabrur.streamly.domain.model.DownloadItem
 import io.github.mabrur.streamly.domain.model.DownloadStatus
 import io.github.mabrur.streamly.domain.repository.DownloadRepository
@@ -35,7 +36,10 @@ class DownloadsViewModel @Inject constructor(
                     it.copy(
                         isLoading = false,
                         items = items.map(DownloadItem::toRowUi),
-                        storageLabel = formatBytes(items.sumOf { item -> item.bytesDownloaded }),
+                        storageLabel = formatStorageLine(
+                            usedBytes = items.sumOf { item -> item.bytesDownloaded },
+                            capBytes = STORAGE_CAP_BYTES,
+                        ),
                         error = null,
                     )
                 }
@@ -61,6 +65,9 @@ class DownloadsViewModel @Inject constructor(
         }
     }
 }
+
+/** Presentational only — matches the design. Nothing enforces a quota. */
+private const val STORAGE_CAP_BYTES = 8L * 1024 * 1024 * 1024
 
 private fun DownloadItem.toRowUi() = DownloadRowUi(
     videoId = videoId,

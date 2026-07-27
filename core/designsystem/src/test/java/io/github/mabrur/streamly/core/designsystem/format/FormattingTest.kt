@@ -96,4 +96,13 @@ class FormattingTest {
         assertEquals("1.5 MB", formatBytes(1_572_864))
         assertEquals("2.0 GB", formatBytes(2L * 1024 * 1024 * 1024))
     }
+
+    @Test
+    fun `formats the storage line with its cap`() {
+        assertEquals(
+            "1.5 MB used of 8.0 GB",
+            formatStorageLine(1_572_864, 8L * 1024 * 1024 * 1024),
+        )
+        assertEquals("0 B used of 8.0 GB", formatStorageLine(0, 8L * 1024 * 1024 * 1024))
+    }
 }

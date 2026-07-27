@@ -749,7 +749,7 @@ git commit -m "feat(ui): restyle player chrome and shorts overlays" \
 
 ## Task 6: Downloads and Profile
 
-- [ ] **Step 1: Restyle Downloads**
+- [x] **Step 1: Restyle Downloads**
 
 - Header on `Surface`: `"Downloads"` (`headlineMedium`, `Ink`) above the storage line
   (`bodySmall`, `Muted`), with a bottom divider.
@@ -770,7 +770,7 @@ git commit -m "feat(ui): restyle player chrome and shorts overlays" \
   `TextButton` Plan 6 specified, so it does not disturb the design's two-line rhythm.
 - Tapping an incomplete row raises the *"Still downloading…"* toast rather than navigating.
 
-- [ ] **Step 2: Restyle Profile and the dialog**
+- [x] **Step 2: Restyle Profile and the dialog**
 
 - Accent header block, centred: 64.dp circular avatar (`Color.White.copy(alpha = 0.35f)`),
   name (`titleLarge`, white), email (`bodySmall`, `Color.White.copy(alpha = 0.72f)`).
@@ -784,12 +784,13 @@ git commit -m "feat(ui): restyle player chrome and shorts overlays" \
   **Sign out** (`Danger`/white). Copy verbatim from the design:
   *"You'll need to sign in again to see your downloads and history."*
 
-- [ ] **Step 3: Verify and commit**
+- [x] **Step 3: Verify and commit**
 
 Run: `./gradlew :app:compileDebugKotlin && ./gradlew testDebugUnitTest`
-Expected: `BUILD SUCCESSFUL`; 111 tests — unchanged in total, but differently composed:
-−2 deleted email tests, +1 toast, +1 storage line. Breakdown: 8 domain, 20 data,
-20 designsystem, 19 core:player, 44 app.
+Expected: `BUILD SUCCESSFUL`. **Result: 124 tests, 0 failures** — 8 domain, 20 data,
+20 designsystem, 19 core:player, 57 app. No tests were deleted (conflict #3 overruled);
+the storage-line test was added, and `DownloadsViewModelTest` was updated because the
+storage label now carries its cap.
 
 ```bash
 git add app/src core/designsystem/src

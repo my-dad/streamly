@@ -68,3 +68,12 @@ fun formatBytes(bytes: Long): String {
     }
     return String.format(Locale.US, "%.1f %s", value, units[unitIndex])
 }
+
+/**
+ * "1.4 GB used of 8 GB".
+ *
+ * The cap is presentational — it matches the design, and nothing enforces it. A real quota
+ * would come from the filesystem, which is out of scope here.
+ */
+fun formatStorageLine(usedBytes: Long, capBytes: Long): String =
+    "${formatBytes(usedBytes)} used of ${formatBytes(capBytes)}"

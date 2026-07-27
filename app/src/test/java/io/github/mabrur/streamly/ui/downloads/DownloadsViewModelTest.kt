@@ -84,8 +84,8 @@ class DownloadsViewModelTest {
         assertEquals("Title a", state.items[0].title)
         assertEquals("512 B", state.items[0].sizeLabel)
         assertEquals(DownloadStatus.InProgress(40f), state.items[1].status)
-        // 512 + 1536 = 2048 bytes.
-        assertEquals("2.0 KB", state.storageLabel)
+        // 512 + 1536 = 2048 bytes, against the design's presentational 8 GB cap.
+        assertEquals("2.0 KB used of 8.0 GB", state.storageLabel)
     }
 
     @Test
