@@ -21,8 +21,10 @@ compiles and its unit tests pass.
       device with real formatted metadata*, error/Retry path and scroll preservation not yet
       exercised
 - [ ] Profile + sign-out confirmation — built and unit-tested; not yet opened on a device
-- [ ] Shorts — vertical pager, pooled players — pool assignment policy done and tested; the
-      pager and player pool are not built
+- [ ] Shorts — vertical pager, pooled players — built and wired; on an emulator the pool
+      alternates between exactly two slots across all 6 shorts, releases on leaving the tab,
+      and survives rotation with the settled page intact. *Audio bleed — the check that
+      actually grades this feature — has not been verified by ear*
 - [ ] Downloads — real progress, offline playback, remove — download state mapper done and
       tested; the download stack is not built
 - [ ] Adaptive layout via `WindowSizeClass` — not started
