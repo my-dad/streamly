@@ -1105,7 +1105,7 @@ git commit -m "docs: README with architecture, AI workflow, and shortcuts" \
 
 ## Task 5: Ship
 
-- [ ] **Step 1: Clean-clone build check**
+- [x] **Step 1: Clean-clone build check**
 
 ```bash
 rm -rf /tmp/streamly-clean
@@ -1116,19 +1116,53 @@ cd /tmp/streamly-clean && ./gradlew assembleDebug && cd -
 Expected: `BUILD SUCCESSFUL` from a fresh clone. If it fails, something needed is untracked —
 find it with `git status --ignored` and fix before shipping.
 
-- [ ] **Step 2: Walk the PRD §13 checklist**
+- [x] **Step 2: Walk the PRD §13 checklist**
 
 Go through every line of `docs/streamly-handoff.md` §13 on a device and record the result.
 Do not tick from inference.
 
-- [ ] **Step 3: Update the README status list**
+- [x] **Step 3: Update the README status list**
 
 Tick only what Step 2 actually confirmed.
 
-- [ ] **Step 4: Attach the APK**
+- [x] **Step 4: Attach the APK**
 
 The debug APK is at `app/build/outputs/apk/debug/app-debug.apk`. Attach it to a GitHub
 release, or state the build command in the README if releases are unavailable.
+
+
+### Results
+
+**Step 1 found a real shipping defect.** `gradlew` was committed as mode `100644` while
+being `755` on disk locally, so `./gradlew` worked here and failed with `Permission denied`
+for anyone cloning the repo. Fixed with `git update-index --chmod=+x`. Nothing else was
+untracked; the clean clone now builds, and the four symlinks survive the clone as symlinks.
+
+**Step 2 — PRD §13, walked on the API 33 emulator:**
+
+| § | Check | Result |
+|---|---|---|
+| 1 | Rotate during long-form playback | pass |
+| 2 | Background pauses, return resumes, exit releases | pass, except no LeakCanary reading was taken |
+| 3 | Shorts fast-swipe: no audio overlap, ≤2 players | pass, measured with `dumpsys audio` |
+| 4 | Home → Player → back repeatedly: no leaks, feed intact | **partial** — no leak, no reload, but scroll position resets |
+| 5 | Download → airplane mode → offline playback; remove | pass |
+| 6 | Every screen shows sane loading / empty / error | pass — Home error + Retry, Downloads empty, all screens rendered |
+| 7 | Four symlinks as `120000`; co-authorship across history | pass — 4 symlinks, 69/81 commits carry the trailer, the 12 without are all merges |
+| 8 | Domain module has zero Android imports | pass |
+| 9 | No Nav2, RxJava, Retrofit, XML layouts | pass — `androidx.fragment` present only via Hilt, see D-012 |
+| 10 | Clean clone builds; APK; demo covers 7 screens | build pass, APK pass, **demo outstanding** |
+| 11 | README: decisions, AI workflow, shortcuts-and-why | pass |
+
+**The §4 failure is genuine and is recorded in the README.** Returning from the Player
+resets the Home feed's scroll position. The feed is not reloaded — no refetch, no loading
+flash — and rotation preserves the identical scroll, which isolates the cause to the Nav3
+`SaveableStateHolder` entry decorator rather than to the screen. Two candidate fixes were
+implemented and measured (hoisting `LazyListState` above `ContentState`; reversing the
+decorator order); neither changed anything and both were reverted.
+
+**Step 4:** the APK builds to `app/build/outputs/apk/debug/app-debug.apk` (~19 MB). It is
+not committed; the README documents the one-command build instead.
 
 - [ ] **Step 5: Record the demo**
 

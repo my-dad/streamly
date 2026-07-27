@@ -71,9 +71,11 @@ Every screen follows the same MVI contract: an immutable `UiState`, a sealed `In
 sealed `Effect` for one-shot events. ViewModels expose `state` and `onIntent` — never a
 `MutableStateFlow`, never a navigation lambda. Shorts is the one deliberate exception: it
 navigates nowhere and raises nothing, so it defines no `Effect` rather than carrying an
-empty channel no call site ever uses. That deviation is recorded as D-013. Loading, empty, and error states are modelled
-inside every `UiState`, with errors as a sealed `AppError` rather than a raw `String`, and
-rendered through one shared `ContentState` wrapper.
+empty channel no call site ever uses. That deviation is recorded as D-013.
+
+Loading, empty, and error states are modelled inside every `UiState`, with errors as a
+sealed `AppError` rather than a raw `String`, and rendered through one shared `ContentState`
+wrapper.
 
 Decisions and their rationale are recorded in [`docs/decisions.md`](docs/decisions.md),
 append-only. Several of them exist because a stated constraint turned out to be unworkable
@@ -94,6 +96,13 @@ No API keys or configuration are required — the catalog is bundled at
 public test CDNs, so the first run needs a network.
 
 There is no lint or formatter configured, and no instrumented tests.
+
+The debug APK is not committed — building it is one command and the artefact is ~19 MB:
+
+    ./gradlew assembleDebug        # -> app/build/outputs/apk/debug/app-debug.apk
+
+`minSdk` is 25. The build has been exercised on an API 33 emulator; see Known limitations
+for the one behaviour that only appears from API 34 and therefore could not be confirmed.
 
 ## AI workflow
 
