@@ -869,7 +869,7 @@ Shorts and Downloads tests are present. On this branch the correct figure is 32.
 
 Every constraint the reviewer can check mechanically, checked mechanically.
 
-- [ ] **Step 1: Run the full audit**
+- [x] **Step 1: Run the full audit**
 
 ```bash
 set -e
@@ -912,10 +912,44 @@ Expected: `clean` for 1–5, 7, 8, 10; `1` for 6; non-zero for 9; `4` for 11.
 
 Fix anything that fails **before** proceeding.
 
-- [ ] **Step 2: Run every test and build**
+- [x] **Step 2: Run every test and build**
 
 Run: `./gradlew testDebugUnitTest :domain:test && ./gradlew assembleDebug`
-Expected: 111 tests pass — 8 domain, 20 data, 19 designsystem, 19 core:player, 45 app. `BUILD SUCCESSFUL`.
+
+**Result: 121 tests, 0 failures** — 8 domain, 20 data, 19 designsystem, 19 core:player,
+**55 app**. `BUILD SUCCESSFUL`. The plan predicted 111/45-app; the extra ten are tests added
+beyond what the Shorts and Downloads plans specified (`ShortsViewModelTest`,
+`DownloadsViewModelTest`, and three Player download cases).
+
+### Audit results
+
+| # | Check | Result |
+|---|---|---|
+| 1 | Ktor / DTO types outside `:data` | clean |
+| 2 | `android`/`androidx` imports in `:domain` | clean |
+| 3 | Exposed `MutableStateFlow` | clean |
+| 4 | `AndroidView` | clean |
+| 5 | `remember { ExoPlayer }` | clean |
+| 6 | `SimpleCache` construction sites | 1 |
+| 7 | `runCatching` in repositories | clean after fix, see below |
+| 8 | Nav2 / RxJava / Retrofit / Fragment | `androidx.fragment` only, see below |
+| 9 | Navigation 3 present | 8 hits |
+| 10 | XML layouts | clean |
+| 11 | Symlinks intact (`120000`) | 4 |
+
+**Check 7 initially failed** on two hits added by the Downloads work: a
+`runCatching { downloadIndex.getDownload(...) }` in `ExoPlayerHolder` and a
+`runCatching { JSONObject(...) }` in `DownloadRepositoryImpl`. Neither sat in a suspend
+function, so neither could actually swallow a `CancellationException` — but a catch-all in
+a repository is worth narrowing regardless. Both are now `try`/`catch` on the specific
+exception (`IOException`, `JSONException`). The only remaining grep hit is the comment in
+`CatalogRepositoryImpl` that tells the next person not to use `runCatching`.
+
+**Check 8 reports `androidx.fragment:fragment:1.5.1`.** It appears exactly once in the
+graph, pulled by `com.google.dagger:hilt-android`, which supports `@AndroidEntryPoint` on
+Fragments and so declares it. It cannot be removed without dropping Hilt, and no `Fragment`
+is subclassed or referenced anywhere in the source — which is what the constraint forbids.
+Already recorded as D-012.
 
 ---
 

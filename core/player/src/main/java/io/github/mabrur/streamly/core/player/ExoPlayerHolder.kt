@@ -8,6 +8,7 @@ import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.source.MediaSource
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.IOException
 import javax.inject.Inject
 
 class ExoPlayerHolder @Inject constructor(
@@ -41,9 +42,13 @@ class ExoPlayerHolder @Inject constructor(
      * this was exactly the airplane-mode failure before the lookup was added.
      */
     private fun mediaItemFor(videoId: String, hlsUrl: String): MediaItem {
-        val download = runCatching {
+        // Catches IOException specifically, not Throwable: an unreadable download index
+        // should fall back to streaming, but nothing else here should be swallowed.
+        val download = try {
             downloadManager.downloadIndex.getDownload(videoId)
-        }.getOrNull()
+        } catch (e: IOException) {
+            null
+        }
 
         return if (download?.state == Download.STATE_COMPLETED) {
             download.request.toMediaItem()

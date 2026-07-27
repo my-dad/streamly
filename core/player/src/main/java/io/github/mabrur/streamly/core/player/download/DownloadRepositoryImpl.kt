@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import org.json.JSONException
 import org.json.JSONObject
 
 @Singleton
@@ -192,7 +193,13 @@ private fun Video.toMetadataBytes(): ByteArray =
         .toByteArray()
 
 private fun Download.toDomain(): DownloadItem {
-    val metadata = runCatching { JSONObject(String(request.data)) }.getOrNull()
+    // Narrow on purpose: a request written by an older build may carry a data blob this
+    // parser does not understand, and that must degrade to the id rather than be fatal.
+    val metadata = try {
+        JSONObject(String(request.data))
+    } catch (e: JSONException) {
+        null
+    }
     return DownloadItem(
         videoId = request.id,
         title = metadata?.optString("title").orEmpty().ifEmpty { request.id },
