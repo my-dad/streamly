@@ -35,18 +35,81 @@
 
 ## Phase overview
 
-| Phase | Focus | Est. | Blocks |
+| Phase | Focus | Est. | Blocks | State |
+|---|---|---|---|---|
+| 0 | Module skeleton, catalog, docs | 2.0h | everything | ✅ on `master` |
+| 1 | Domain + data layer | 2.0h | 3–7 | ✅ on `master` |
+| 2 | Design system + Nav3 shell | 2.0h | 3–7 | ✅ on `master` — **except 2.7**, see below |
+| 3 | Home feed | 1.5h | 4 | ✅ on `master`, device checks open |
+| 4 | **Player** (Media3 ⅓) | 3.0h | 6 | 🟡 built on `feat/player`, **device checks open — the blocker** |
+| 5 | **Shorts** (Media3 ⅔) | 3.0h | — | 🟡 Task 1 on `feat/shorts-pool-policy`; Tasks 2–4 blocked on 4 |
+| 6 | **Downloads + offline** (Media3 ³⁄₃) | 4.0h | — | 🟡 Task 1 on `feat/download-status-mapper`; Tasks 2–6 blocked on 4 |
+| 7 | Onboarding, session, Profile, sign-out | 2.0h | — | 🟡 Tasks 1–2 on `feat/onboarding-profile`; Tasks 3–5 blocked on 5+6 |
+| 8 | Polish, tests, deliverables | 2.5h | — | ⬜ not started — run last |
+| | **Total** | **22.0h** | | |
+
+---
+
+## Current state — resume here
+
+*Updated 2026-07-27. The per-task detail lives in each plan under
+`docs/superpowers/plans/`; every plan has a "where this stands" section. This is the map.*
+
+### The one blocker
+
+**Phase 4's device verification.** `feat/player` is complete and green but unmerged, and
+everything in Phases 5–7 that needs `PlayerModule` waits behind it.
+
+The critical check is the Player plan's **Task 5 Step 4a**: confirm `PlayerViewModel.onCleared()`
+actually fires when the Player entry is popped. This is the first real test that
+`rememberViewModelStoreNavEntryDecorator()` scopes ViewModels to their `NavEntry` — the
+check **Phase 2.7 deferred and nothing has performed since**. If it fails, the fix is in
+`StreamlyApp.kt` / D-007, and Shorts' pool release depends on the same mechanism. Exact
+steps, including the temporary log lines to add and revert, are in the Player plan.
+
+### Branch map
+
+| Branch | Contains | Commits | State |
 |---|---|---|---|
-| 0 | Module skeleton, catalog, docs | 2.0h | everything |
-| 1 | Domain + data layer | 2.0h | 3–7 |
-| 2 | Design system + Nav3 shell | 2.0h | 3–7 |
-| 3 | Home feed | 1.5h | 4 |
-| 4 | **Player** (Media3 ⅓) | 3.0h | 6 |
-| 5 | **Shorts** (Media3 ⅔) | 3.0h | — |
-| 6 | **Downloads + offline** (Media3 ³⁄₃) | 4.0h | — |
-| 7 | Onboarding, session, Profile, sign-out | 2.0h | — |
-| 8 | Polish, tests, deliverables | 2.5h | — |
-| | **Total** | **22.0h** | |
+| `master` | Phases 0–3 | — | integration branch |
+| `feat/player` | Phase 4 | 9 | green; awaiting device checks |
+| `feat/onboarding-profile` | Phase 7 Tasks 1–2 | 4 | green; **conflicts with `feat/player`**, see below |
+| `feat/shorts-pool-policy` | Phase 5 Task 1 | 2 | green; merges clean |
+| `feat/download-status-mapper` | Phase 6 Task 1 | 2 | green; merges clean |
+| `docs/readme-architecture` | README | 1 | docs only; merges clean |
+
+`feat/home-feed` and `docs/home-feed-plan-progress` are already merged into `master` and can
+be deleted.
+
+A trial merge of all five open branches was run and then discarded. Four merge clean in any
+order. `feat/onboarding-profile` conflicts with `feat/player` in `StreamlyApp.kt` — both edit
+the import block and the `entryProvider` body, which is structural, since every feature
+branch registers its screen in the one nav host. Resolution: keep all three imports and all
+three real entries, leaving only Shorts and Downloads as `PlaceholderScreen`.
+
+**Integrated suite is green: 92 tests, 0 failures** — 8 domain, 20 data, 17 designsystem,
+19 core:player, 28 app.
+
+### Suggested order when the blocker clears
+
+1. Run the Phase 4 device checks → merge `feat/player`, delete the branch.
+2. Merge `feat/shorts-pool-policy` and `feat/download-status-mapper` (clean, any order).
+3. Merge `feat/onboarding-profile`, resolving the `StreamlyApp.kt` conflict as above.
+4. Merge `docs/readme-architecture`.
+5. Shorts Tasks 2–4, then Downloads Tasks 2–6 — both now unblocked.
+6. Phase 7 Tasks 3–5 (audit, docs, ship), then Phase 8.
+
+### Open questions for the human
+
+- **The design pass deletes work already built.** Plan 8's resolved-conflict #3 drops the
+  email `TextField` and its validation from Onboarding, plus two passing tests, in favour of
+  the design's direct sign-in. That is a deliberate design call, not an oversight — but it
+  should be settled before Phase 8 rather than during it.
+- **`Placeholders.kt` deletion is deferred.** Plan 7 Task 2 says to delete it because "every
+  placeholder is now gone"; that only becomes true once Shorts and Downloads land. Whichever
+  plan replaces the last placeholder should delete it.
+- **Nothing has been verified on a device yet**, across any phase. The README status list is
+  deliberately all-unticked for that reason.
 
 Phases 4–6 are the 30% rubric block. PRD §1: *if the clock breaks, cut visual polish and Profile depth — never these.*
 
