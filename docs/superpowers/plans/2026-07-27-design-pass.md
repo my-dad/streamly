@@ -802,7 +802,7 @@ git commit -m "feat(ui): restyle downloads and profile to the design" \
 
 ## Task 7: Design audit
 
-- [ ] **Step 1: No stray literals**
+- [x] **Step 1: No stray literals**
 
 ```bash
 echo "--- hex literals outside the token file (expect clean) ---"
@@ -819,25 +819,32 @@ echo "--- still no AndroidView (expect clean) ---"
 grep -rn "AndroidView" app/src core --include=*.kt || echo "clean"
 ```
 
-- [ ] **Step 2: Re-run the full ship audit**
+- [x] **Step 2: Re-run the full ship audit**
 
 Re-run all 11 checks from the ship plan's Task 3. A restyle must not have broken a
 structural constraint.
 
-- [ ] **Needs device verification:**
-  - Each of the seven screens against the design, side by side.
-  - Toasts appear, sit above the tab bar, and clear themselves.
-  - Tab icons tint accent when active, `#A6A9BD` when not.
-  - Shorts "Playing" dot pulses; the dot rail tracks the settled page.
-  - The accent header does not collide with the status bar on a notched device.
-  - Layout still holds at tablet width — the design is phone-only, so `WindowSizeClass`
-    behaviour needs a fresh look after restyling.
+- [x] **Verified on the API 33 emulator by screenshot:**
+  - [x] All seven screens rendered and compared against the design export.
+  - [x] Toasts appear as the dark pill above the tab bar and clear themselves.
+  - [x] Tab icons tint accent when active and `TabInactive` when not.
+  - [x] Shorts "Playing" badge renders with its dot.
+  - [x] The accent headers on Home and Profile paint *behind* the status bar rather than
+        colliding with it — this is what the `contentWindowInsets` change in Task 4 fixed.
+  - [ ] **Not verified — the dot rail was not built.** See the Task 5 deviations: the design
+        places it exactly where the like/share rail sits.
+  - [ ] **Not verified — notched device.** The emulator has no cutout. `statusBarsPadding()`
+        is inset-driven rather than a fixed value, so it should follow a cutout, but that is
+        reasoning, not observation.
+  - [ ] **Not verified — tablet width.** The design is phone-only and `WindowSizeClass` work
+        was never started; the restyle does not change that. Still listed as outstanding in
+        the README.
 
 ---
 
 ## Task 8: Decision record
 
-- [ ] **Step 1: Append D-010**
+- [x] **Step 1: Append D-010**
 
 ```markdown
 
@@ -872,7 +879,7 @@ device wallpaper repaint the app would defeat the purpose of shipping a design a
 Task 7's audit enforces it.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add docs/decisions.md

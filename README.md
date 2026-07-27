@@ -133,6 +133,12 @@ This list grows as features land; it currently covers what is built.
 - **Category chips filter client-side** against the bundled catalog rather than re-querying.
 - **Transport controls act on the `Player` directly** rather than through the intent channel,
   because Media3 already ships tested state holders for them. Recorded as D-008.
+- **Subscribe and Like are local, non-persisted state.** There is no subscription or
+  reaction backend to talk to, so the buttons toggle in the ViewModel and reset when the
+  screen is popped. The PRD permits the stub; pretending otherwise would be worse.
+- **The visual design was applied last, as a presentation-layer pass** over working screens,
+  and never changed behaviour. Where `streamly.dc.html` and PRD §9 disagreed, the PRD won all
+  three times — see D-017.
 - **`VideoCard` takes formatted primitives, not a model.** It lives in `:core:designsystem`,
   which cannot depend on `:app`, so passing pre-formatted strings keeps the component
   reusable and the module graph acyclic.
