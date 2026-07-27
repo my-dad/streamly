@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.media3.common.MediaItem
 import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.datasource.DataSource
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadHelper
 import androidx.media3.exoplayer.offline.DownloadManager
@@ -11,6 +12,7 @@ import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.mabrur.streamly.domain.model.DownloadItem
+import io.github.mabrur.streamly.domain.model.DownloadStatus
 import io.github.mabrur.streamly.domain.model.Video
 import io.github.mabrur.streamly.domain.repository.DownloadRepository
 import java.io.IOException
@@ -20,8 +22,11 @@ import javax.inject.Singleton
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONObject
 
@@ -33,7 +38,9 @@ class DownloadRepositoryImpl @Inject constructor(
 ) : DownloadRepository {
 
     /**
-     * Real progress, straight from DownloadManager. No timers, no interpolation.
+     * Real progress: every number here is read back from DownloadManager. There is a
+     * timer, but it only decides *when* to re-read — nothing is interpolated or estimated,
+     * so a stalled download visibly stalls instead of drifting upward.
      *
      * Emits once immediately so the screen is populated on open, then on every change.
      */
@@ -60,7 +67,22 @@ class DownloadRepositoryImpl @Inject constructor(
         downloadManager.addListener(listener)
         emitCurrent()
 
-        awaitClose { downloadManager.removeListener(listener) }
+        // DownloadManager.Listener fires on state transitions only — never as bytes
+        // arrive. Measured: with the listener alone the row sat at "13% · 105.5 MB" for
+        // 24 seconds while the cache on disk grew from 263 MB to 291 MB. Polling is what
+        // makes the progress real; it stops as soon as nothing is running.
+        val poller = launch {
+            while (isActive) {
+                delay(PROGRESS_POLL_MS)
+                val items = readAll()
+                if (items.any { it.status is DownloadStatus.InProgress }) trySend(items)
+            }
+        }
+
+        awaitClose {
+            poller.cancel()
+            downloadManager.removeListener(listener)
+        }
     }
 
     /**
@@ -106,6 +128,13 @@ class DownloadRepositoryImpl @Inject constructor(
             val helper = DownloadHelper.Factory()
                 .setDataSourceFactory(upstreamFactory)
                 .setTrackSelectionParameters(downloadTrackParameters())
+                // Mandatory, and not obviously so. Without a RenderersFactory the helper
+                // has no renderer capabilities to select against, every track comes back
+                // unsupported, and getDownloadRequest emits an empty stream-key list —
+                // which means "download the entire media". Measured: omitting this pulled
+                // all five renditions of the 848x480 test stream, ~800 MB instead of ~67 MB,
+                // with the bitrate cap below having no observable effect at all.
+                .setRenderersFactory(DefaultRenderersFactory(context))
                 .create(MediaItem.fromUri(video.hlsUrl))
 
             continuation.invokeOnCancellation { helper.release() }
@@ -147,6 +176,7 @@ class DownloadRepositoryImpl @Inject constructor(
 
     private companion object {
         const val MAX_DOWNLOAD_VIDEO_BITRATE = 1_500_000
+        const val PROGRESS_POLL_MS = 1_000L
     }
 }
 

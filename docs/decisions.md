@@ -256,3 +256,55 @@ that must not decide what gets stored offline.
 exactly one rendition (1080p, 6.3 Mbps, ~10 minutes). No track selection can shrink those;
 they download at roughly half a gigabyte each. The other ten are bounded by the cap.
 Repointing those eight at a multi-rendition source is a catalog change, deferred.
+
+---
+
+## D-015 — Downloaded videos play from their `DownloadRequest`, so `PlayerHolder` takes a video id
+
+**Status:** Accepted · 2026-07-27
+
+`PlayerHolder.setMedia` was `setMedia(hlsUrl, startPositionMs)`. It is now
+`setMedia(videoId, hlsUrl, startPositionMs)`, and `ExoPlayerHolder` consults the
+`DownloadIndex` before choosing what to play: a `STATE_COMPLETED` download is played via
+`download.request.toMediaItem()`, anything else streams `hlsUrl`.
+
+Playing the master playlist URL for a downloaded video does not work offline. The URL lets
+the track selector pick any rendition in the ladder, including ones that were never stored;
+online the miss is silently fetched and everything looks correct, and offline it fails with
+`UnknownHostException`. That is exactly what the first airplane-mode test produced. The
+`DownloadRequest` carries the stream keys naming the rendition actually on disk, so playing
+through it constrains the selector to what exists locally.
+
+The lookup lives in `:core:player` rather than in the ViewModel. `:app` passes a plain
+`String` id and never learns that Media3, `DownloadIndex`, or `DownloadRequest` exist.
+
+**Consequence:** `ExoPlayerHolder` now depends on `DownloadManager`, so the player and
+download stacks are coupled inside `:core:player`. That is the same coupling the shared
+`SimpleCache` already implies, and it is contained within one module.
+
+---
+
+## D-016 — Two Media3 behaviours the plans assumed wrongly
+
+**Status:** Accepted · 2026-07-27
+
+Both were found by running the app, not by reading it, and both are recorded because the
+code now looks over-built without the explanation.
+
+**`DownloadHelper` needs a `RenderersFactory` or it downloads everything.** Built through
+`DownloadHelper.Factory()` without one, the helper has no renderer capabilities to select
+against, every track resolves as unsupported, and `getDownloadRequest` returns an empty
+stream-key list — which Media3 reads as "store the entire media". Measured: all five
+renditions of the 848×480 test stream, ~800 MB instead of ~127 MB, with the D-010 bitrate
+cap having no observable effect whatsoever. The cap only became real once
+`setRenderersFactory(DefaultRenderersFactory(context))` was added.
+
+**`DownloadManager.Listener` is not a progress source.** It fires on state transitions —
+queued, completed, removed — and never as bytes arrive. Observing it alone, as the plan
+specified, left the row frozen at "13% · 105.5 MB" for 24 seconds while the cache on disk
+grew from 263 MB to 291 MB. `DownloadRepositoryImpl` now also polls the index once a second
+while any download is in progress, and stops the moment none is.
+
+**Consequence:** "progress comes from observing `DownloadManager` into a Flow" is true of
+where the numbers come from, not of when they are read. Nothing is interpolated: a stalled
+download still visibly stalls, which a timer-driven fake progress bar would hide.

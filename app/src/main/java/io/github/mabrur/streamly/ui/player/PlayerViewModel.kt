@@ -86,7 +86,7 @@ class PlayerViewModel @Inject constructor(
             getVideoDetail(id)
                 .onSuccess { video ->
                     currentVideo = video
-                    playerHolder.setMedia(video.hlsUrl, startPositionMs = 0L)
+                    playerHolder.setMedia(video.id, video.hlsUrl, startPositionMs = 0L)
                     val related = getRelatedVideos(id).getOrDefault(emptyList())
                     _state.update {
                         it.copy(

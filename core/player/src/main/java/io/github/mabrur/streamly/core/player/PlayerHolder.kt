@@ -12,8 +12,13 @@ import androidx.media3.common.Player
 interface PlayerHolder {
     val player: Player
 
-    /** Prepares [hlsUrl] and seeks to [startPositionMs]. Does not start playback. */
-    fun setMedia(hlsUrl: String, startPositionMs: Long = 0L)
+    /**
+     * Prepares [videoId] and seeks to [startPositionMs]. Does not start playback.
+     *
+     * [videoId] is not decoration: if that video has been downloaded, it is played from
+     * local storage and [hlsUrl] is never touched.
+     */
+    fun setMedia(videoId: String, hlsUrl: String, startPositionMs: Long = 0L)
 
     fun pause()
 

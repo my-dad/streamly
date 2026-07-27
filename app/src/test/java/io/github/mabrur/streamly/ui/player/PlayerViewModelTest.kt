@@ -67,7 +67,10 @@ private class FakePlayerHolder : PlayerHolder {
     var releaseCount = 0
     var paused = false
 
-    override fun setMedia(hlsUrl: String, startPositionMs: Long) {
+    var lastVideoId: String? = null
+
+    override fun setMedia(videoId: String, hlsUrl: String, startPositionMs: Long) {
+        lastVideoId = videoId
         lastUrl = hlsUrl
         lastStartPositionMs = startPositionMs
     }
