@@ -5,6 +5,7 @@ import io.github.mabrur.streamly.domain.model.SessionState
 import io.github.mabrur.streamly.domain.repository.SessionRepository
 import io.github.mabrur.streamly.domain.usecase.SignInUseCase
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -28,6 +29,7 @@ private class FakeSessionRepository : SessionRepository {
     override suspend fun signOut() { signOutCount++ }
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class OnboardingViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()

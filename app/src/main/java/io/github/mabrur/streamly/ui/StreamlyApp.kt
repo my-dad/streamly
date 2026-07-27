@@ -30,6 +30,7 @@ import io.github.mabrur.streamly.ui.navigation.TopLevelDestination
 import io.github.mabrur.streamly.ui.navigation.startKeyFor
 import io.github.mabrur.streamly.ui.onboarding.OnboardingRoute
 import io.github.mabrur.streamly.ui.placeholder.PlaceholderScreen
+import io.github.mabrur.streamly.ui.profile.ProfileRoute
 
 @Composable
 fun StreamlyApp(
@@ -127,7 +128,7 @@ private fun StreamlyNavHost(
                 }
                 entry<StreamlyKey.Shorts> { PlaceholderScreen("Shorts") }
                 entry<StreamlyKey.Downloads> { PlaceholderScreen("Downloads") }
-                entry<StreamlyKey.Profile> { PlaceholderScreen("Profile") }
+                entry<StreamlyKey.Profile> { ProfileRoute() }
                 entry<StreamlyKey.Player> { key -> PlaceholderScreen("Player ${key.videoId}") }
             },
         )
