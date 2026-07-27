@@ -203,3 +203,56 @@ classpath as a transitive of the artifact it replaces.
 `com.google.dagger:hilt-android`, which supports `@AndroidEntryPoint` on Fragments and
 so declares it. That cannot be removed without dropping Hilt. No Fragment is subclassed
 or referenced anywhere in the source, which is what the constraint actually forbids.
+
+---
+
+## D-009 — `DownloadRepositoryImpl` lives in `:core:player`, not `:data`
+
+**Status:** Accepted · 2026-07-27
+
+`CatalogRepositoryImpl` and `SessionRepositoryImpl` live in `:data`. `DownloadRepositoryImpl`
+does not — it lives in `:core:player`.
+
+The implementation is inseparable from Media3: it needs `DownloadManager`, `DownloadHelper`,
+`DownloadService`, and the shared `SimpleCache`. Putting it in `:data` would mean adding the
+whole Media3 offline stack to a module whose job is Ktor and DataStore, purely to satisfy a
+naming convention.
+
+The architectural rule that actually matters is unbroken: `:core:player → :domain`, `:app`
+injects the `DownloadRepository` **interface**, and no Media3 type crosses into `:app`.
+
+**Consequence:** "repository implementations live in `:data`" is not a project-wide
+invariant. The invariant is "repository implementations live beside the technology they
+wrap, and depend only on `:domain`."
+
+> Numbering note: D-009 and D-010 were never written — the sequence jumped from D-008 to
+> D-011 during the player work — so this record takes the first free id rather than
+> appending after D-012. The Shorts branch independently uses D-013 and D-014, so there is
+> no collision when these branches merge.
+
+---
+
+## D-010 — Downloads cap video bitrate; one catalog source stays large regardless
+
+**Status:** Accepted · 2026-07-27
+
+`DownloadRepositoryImpl` passes `TrackSelectionParameters` with `maxVideoBitrate` set to
+1.5 Mbps rather than letting `DownloadHelper` select renditions freely.
+
+Left at its defaults, `DownloadHelper` picks by decoder capability alone, and the catalog's
+1080p sources come to roughly half a gigabyte each — absurd for a demo, and slow enough to
+make the progress UI untestable.
+
+The constraint is deliberately **soft**. `DefaultTrackSelector` still selects the smallest
+available rendition when every one of them exceeds the cap, so a single-rendition stream
+downloads rather than silently producing an audio-only file that reports "Ready to play"
+and then fails.
+
+The no-argument `TrackSelectionParameters.Builder()` is used rather than the `Context`
+overload, which would constrain selection to the current display size — a playback concern
+that must not decide what gets stored offline.
+
+**Consequence:** eight of the eighteen catalog videos point at `tos_ismc`, which publishes
+exactly one rendition (1080p, 6.3 Mbps, ~10 minutes). No track selection can shrink those;
+they download at roughly half a gigabyte each. The other ten are bounded by the cap.
+Repointing those eight at a multi-rendition source is a catalog change, deferred.
