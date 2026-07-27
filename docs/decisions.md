@@ -93,7 +93,33 @@ uses an explicit `catching` helper that rethrows `CancellationException` first.
 
 ---
 
-> **Numbering note:** D-007 through D-010 are pre-allocated by the remaining
+## D-007 — `NavDisplay` entry decorators are passed explicitly
+
+**Status:** Accepted · 2026-07-27
+
+`NavDisplay` is always called with an explicit `entryDecorators` list:
+
+    entryDecorators = listOf(
+        rememberSaveableStateHolderNavEntryDecorator(),
+        rememberViewModelStoreNavEntryDecorator(),
+    )
+
+Inspecting `navigation3-runtime` 1.1.4 confirms it ships only
+`SaveableStateHolderNavEntryDecorator`; ViewModel scoping lives in a separate
+artifact, `lifecycle-viewmodel-navigation3`, which `navigation3-ui` does not depend
+on. The default decorator set therefore *cannot* include ViewModel scoping.
+
+Without the explicit list, every screen ViewModel is Activity-scoped: `onCleared()`
+never fires on pop, the long-form `ExoPlayer` is never released, and the app leaks a
+player per Player-screen visit. Playback still appears to work, so the defect is
+invisible without LeakCanary — which is what makes it worth recording.
+
+**Consequence:** any future `NavDisplay` call site must pass this list. Adding one
+without it silently reintroduces the leak.
+
+---
+
+> **Numbering note:** D-008 through D-010 are pre-allocated by the remaining
 > implementation plans, which reference those IDs in code comments. Records written
 > outside a plan therefore start at D-011 to avoid renumbering them.
 
@@ -130,3 +156,26 @@ deferring it.
 
 **Consequence:** the AGENTS.md rule "never bump AGP, Kotlin, or Compose compiler
 versions" is intact — none of those moved. `compileSdk` is not on that list.
+
+---
+
+## D-012 — `hilt-lifecycle-viewmodel-compose` replaces `hilt-navigation-compose`
+
+**Status:** Accepted · 2026-07-27
+
+`hiltViewModel()` is imported from
+`androidx.hilt.lifecycle.viewmodel.compose`, not `androidx.hilt.navigation.compose`.
+
+`androidx.hilt:hilt-navigation-compose:1.4.0` — which the plans specified — depends
+transitively on `androidx.navigation:navigation-compose:2.9.0`. That is **Nav2**, which
+the PRD bans outright and which a reviewer can spot in the dependency tree in seconds.
+It also pulled `androidx.fragment:fragment`.
+
+`androidx.hilt:hilt-lifecycle-viewmodel-compose:1.4.0` exposes the same
+`hiltViewModel()` overloads with no navigation dependency at all. It was already on the
+classpath as a transitive of the artifact it replaces.
+
+**Consequence:** `androidx.fragment` is still present, but now solely as a transitive of
+`com.google.dagger:hilt-android`, which supports `@AndroidEntryPoint` on Fragments and
+so declares it. That cannot be removed without dropping Hilt. No Fragment is subclassed
+or referenced anywhere in the source, which is what the constraint actually forbids.
