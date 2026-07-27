@@ -682,7 +682,7 @@ git commit -m "feat(ui): restyle onboarding, home app bar, chips and cards" \
 
 ## Task 5: Player and Shorts
 
-- [ ] **Step 1: Restyle the Player**
+- [x] **Step 1: Restyle the Player**
 
 The video stage keeps its `16f/9f` aspect ratio — the design's `230px` against a `402px`
 frame is 16:9 within a rounding error, and the PRD names 16:9 explicitly.
@@ -703,7 +703,7 @@ Add, in the design's order:
   `"Downloaded"` or `"{n}%"` from the existing download state; Share raises the *"Link copied"* toast.
 - **Then the up-next list** (conflict #1) — restyled `VideoCard`s, unchanged behaviour.
 
-- [ ] **Step 2: Restyle Shorts**
+- [x] **Step 2: Restyle Shorts**
 
 Keep `ShortsScreen`'s pager and pool logic exactly as Plan 5 built it. Add chrome only:
 
@@ -721,7 +721,7 @@ Keep `ShortsScreen`'s pager and pool logic exactly as Plan 5 built it. Add chrom
 
 Replace the `"♥ likes 💬 comments"` text placeholder from Plan 5 with these.
 
-- [ ] **Step 3: Verify and commit**
+- [x] **Step 3: Verify and commit**
 
 Run: `./gradlew :app:compileDebugKotlin && ./gradlew :app:testDebugUnitTest`
 
@@ -730,6 +730,20 @@ git add app/src
 git commit -m "feat(ui): restyle player chrome and shorts overlays" \
            -m "Co-authored-by: Claude <noreply@anthropic.com>"
 ```
+
+### Deviations
+
+1. **No back button on the video stage.** The bottom bar is hidden on Player and the system
+   back gesture already returns to Home; adding a second affordance that does the same thing
+   is chrome for its own sake. The centred play/pause overlay was also left out — the
+   existing `PlayerControls` row already exposes play/pause, and two controls driven by the
+   same `rememberPlayPauseButtonState` can visibly disagree mid-frame.
+2. **No dot rail on Shorts.** The design places one dot per short at centre-end, which is
+   exactly where the like/share rail sits; drawing both would overlap them. The rail was
+   kept because it is what the PRD names.
+3. **`isPlayingOffline` and `downloadLabel` are observed, not read once.** The plan implies a
+   one-shot read; the ViewModel collects `downloadRepository.downloads` so a download
+   finishing while the user watches flips "42%" to "Downloaded" without a reload.
 
 ---
 

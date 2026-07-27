@@ -7,6 +7,7 @@ import androidx.media3.common.Player
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.mabrur.streamly.core.player.PlayerHolder
 import io.github.mabrur.streamly.domain.error.AppError
+import io.github.mabrur.streamly.domain.model.DownloadStatus
 import io.github.mabrur.streamly.domain.model.Video
 import io.github.mabrur.streamly.domain.repository.DownloadRepository
 import io.github.mabrur.streamly.domain.usecase.GetRelatedVideosUseCase
@@ -47,6 +48,28 @@ class PlayerViewModel @Inject constructor(
     /** Exposed for [androidx.media3.ui.compose.PlayerSurface] and the media3 state holders. */
     val player: Player get() = playerHolder.player
 
+    init {
+        // The download state decides two labels on this screen, so it is observed rather
+        // than read once: a download finishing while the user watches must flip "42%" to
+        // "Downloaded" without a reload.
+        viewModelScope.launch {
+            downloadRepository.downloads.collect { items ->
+                val mine = items.firstOrNull { it.videoId == videoId }
+                _state.update {
+                    it.copy(
+                        isPlayingOffline = mine?.status == DownloadStatus.Completed,
+                        downloadLabel = when (val status = mine?.status) {
+                            DownloadStatus.Completed -> "Downloaded"
+                            is DownloadStatus.InProgress -> "${status.percent.toInt()}%"
+                            null -> "Download"
+                            else -> "Queued"
+                        },
+                    )
+                }
+            }
+        }
+    }
+
     fun onIntent(intent: PlayerIntent) {
         when (intent) {
             is PlayerIntent.Load -> {
@@ -56,6 +79,13 @@ class PlayerViewModel @Inject constructor(
                 load()
             }
             PlayerIntent.Retry -> load()
+            PlayerIntent.SubscribeToggled ->
+                _state.update { it.copy(isSubscribed = !it.isSubscribed) }
+            PlayerIntent.LikeToggled ->
+                _state.update { it.copy(isLiked = !it.isLiked) }
+            PlayerIntent.ShareClicked -> viewModelScope.launch {
+                _effects.send(PlayerEffect.LinkCopied)
+            }
             is PlayerIntent.RelatedClicked -> viewModelScope.launch {
                 _effects.send(PlayerEffect.OpenVideo(intent.videoId))
             }

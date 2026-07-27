@@ -55,6 +55,7 @@ fun PlayerRoute(
                     PlayerEffect.DownloadStarted -> toastState.show("Download started")
                     PlayerEffect.DownloadFailed ->
                         toastState.show("Couldn't start that download")
+                    PlayerEffect.LinkCopied -> toastState.show("Link copied")
                 }
             }
         }
