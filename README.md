@@ -50,7 +50,8 @@ ever in `started` state, and leaving either surface drops it to zero.
 The device checks that gate these are listed per-feature in the corresponding plan under
 `docs/superpowers/plans/`. They cover rotation safety, player release and leak checks, audio
 bleed, and offline playback — none of which a unit test can establish. `docs/streamly-build-plan.md`
-carries the phase-by-phase state.
+carries the phase-by-phase state, and its Status section lists the three plan tasks that are
+still open and why.
 
 ## Architecture
 
