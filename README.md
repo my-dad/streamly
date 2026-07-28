@@ -35,12 +35,12 @@ compiles and its unit tests pass.
       growing on disk, the completed item **plays in airplane mode** (confirmed by
       screenshot, not just by a rising position), Remove drops storage to zero, and a
       force-stop and relaunch while still offline leaves the download listed and playable
-- [x] **Adaptive layout via `WindowSizeClass`** — verified on an emulator: the Player splits
-      into a video pane beside a scrolling details pane when the window is Compact-height (a
-      phone in landscape), the picture is letterboxed rather than stretched, the details pane
-      scrolls to the end of the up-next list, and rotating mid-playback keeps the same player
-      and position with no re-buffer. In portrait the stage stays pinned while everything
-      below it scrolls. Every other screen is deliberately unchanged — see D-019
+- [x] **Adaptive layout via `WindowSizeClass`** — verified on an emulator: at Compact window
+      height (a phone in landscape) the Player goes fullscreen, system bars hidden, transport
+      controls overlaid; rotating back or leaving the screen restores the bars, and rotating
+      mid-playback keeps the same player and position with no re-buffer. In portrait the
+      stage stays pinned while the details and up-next list scroll under it. Every other
+      screen is deliberately unchanged — see D-020, which supersedes D-019
 
 Once Shorts and Downloads were merged together, the integrated build was re-checked for the
 one failure neither branch could produce alone — audio bleeding between the two playback
@@ -157,6 +157,10 @@ This list grows as features land; it currently covers what is built.
   single-column layout at every size class, so in landscape a Home card is one very wide row.
   They stay usable; they are not laid out for the space. Deliberate, recorded as D-019 —
   breakpoints without a failing case behind them are layout code nobody asked for.
+- **Landscape hides the Player's details rather than laying them out.** Title, actions and
+  the up-next list are one rotation away, not on screen. That is the fullscreen convention
+  (D-020), not an oversight — but there is no in-app fullscreen toggle, so portrait cannot
+  reach fullscreen without rotating the device.
 - The MockEngine fails roughly one request in eight by design, so error states are genuinely
   reachable in the demo. This is deliberate, not a bug.
 - No instrumented tests. Unit tests cover ViewModel intent→state transitions and all display

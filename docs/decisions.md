@@ -422,7 +422,7 @@ is that the right effect is raised — which is the part that can regress silent
 
 ## D-019 — Adaptive layout keys on window *height*, and only the Player screen gets it
 
-**Status:** Accepted · 2026-07-28
+**Status:** Superseded by D-020 · 2026-07-28
 
 `WindowSizeClass` was plumbed from `MainActivity` to `StreamlyNavHost` in Phase 2 and then
 sat unused behind a `@Suppress("UNUSED_PARAMETER")`. It is now consumed, in one place.
@@ -452,3 +452,36 @@ fixed in Shorts (D-016).
 **Consequence:** the README's "Player does not adapt to landscape" limitation is addressed in
 code but stays listed until a device confirms it, and the Status checkbox stays unticked for
 the same reason. Rotation safety is unaffected — nothing here touches player ownership.
+
+---
+
+## D-020 — Landscape is fullscreen playback, not a two-pane layout
+
+**Status:** Accepted · 2026-07-28 · Supersedes D-019
+
+D-019 split the Player into a video pane and a details pane at Compact height. Built, run on
+the emulator, and rejected on sight: the up-next list took half a 2400×1080 window while the
+video was squeezed into a 1200-wide pane that letterboxed it to 1200×675, with 170px of black
+above and below. Both halves were compromised to avoid choosing between them.
+
+Compact height now renders the stage and nothing else, with the system bars hidden. The
+window is the video's. Rotating back, or leaving the screen, restores everything — the
+`DisposableEffect` that hides the bars is scoped to the landscape branch, so nothing else has
+to remember to undo it.
+
+What D-019 got right and this keeps: the branch is on **height**, not width, and no screen
+other than the Player consumes a size class.
+
+What it got wrong: it treated "the details are unreachable in landscape" as the problem to
+solve. The real problem is that a phone in landscape is a screen shaped for a video and
+nothing else, which is why every video app treats that orientation as fullscreen. The details
+are not lost — they are one rotation away, which is the gesture users already reach for.
+
+The transport controls stay, overlaid on a scrim at the bottom in white. Without them
+landscape would have no pause and no seek, and the only way to reach either would be to
+rotate out. They do not auto-hide on a timer: more code, and less discoverable.
+
+**Consequence:** the two-pane branch is gone, so this is less code than D-019 shipped.
+`ContentScale.Fit` still applies, so on a 20:9 phone the video pillarboxes to 1920×1080 with
+240px of black each side. That is the correct result for a 16:9 source on a 20:9 display and
+matches what other players do; cropping to fill would cut the picture.

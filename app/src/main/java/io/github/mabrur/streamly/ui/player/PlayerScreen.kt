@@ -7,29 +7,36 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowHeightSizeClass
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.LocalActivity
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.Player
 import androidx.media3.ui.compose.PlayerSurface
 import androidx.media3.ui.compose.SURFACE_TYPE_SURFACE_VIEW
@@ -57,27 +64,11 @@ fun PlayerScreen(
         onRetry = { onIntent(PlayerIntent.Retry) },
     ) { video ->
         // Height, not width, is what runs out: a phone in landscape is Compact-height, and
-        // a full-width 16:9 stage there leaves nothing for the title, actions or up-next.
-        // Side by side is the only arrangement that keeps both halves usable.
+        // there is no arrangement of a 16:9 stage plus a details column that leaves either
+        // one usable. Landscape means fullscreen, which is what every video app does and
+        // what the details are worth giving up for.
         if (windowSizeClass.heightSizeClass == WindowHeightSizeClass.Compact) {
-            Row(modifier = Modifier.fillMaxSize()) {
-                VideoStage(
-                    player = player,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
-                )
-                // The host Scaffold deliberately leaves the top inset unconsumed so screens
-                // can paint behind the status bar. The stage wants that; a text pane beside
-                // it does not — without this the title sits under the clock and icons.
-                LazyColumn(
-                    modifier = Modifier
-                        .weight(1f)
-                        .statusBarsPadding(),
-                ) {
-                    details(video, state, onIntent, player)
-                }
-            }
+            FullscreenStage(player = player)
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Outside the list on purpose. Scrolling the stage away would leave the
@@ -95,6 +86,48 @@ fun PlayerScreen(
                     details(video, state, onIntent, player)
                 }
             }
+        }
+    }
+}
+
+/**
+ * Landscape: the video and nothing else, with the system bars out of the way.
+ *
+ * The transport controls stay — without them there is no pause and no seek here, and the
+ * only way to reach one would be to rotate back. They sit over a scrim at the bottom
+ * rather than auto-hiding on a timer, which would be more code for less discoverability.
+ */
+@Composable
+private fun FullscreenStage(
+    player: Player,
+    modifier: Modifier = Modifier,
+) {
+    val view = LocalView.current
+    val window = LocalActivity.current?.window
+
+    // Scoped to this branch: leaving landscape, or the screen, disposes it and puts the
+    // bars back. Nothing else has to remember to undo it.
+    DisposableEffect(view, window) {
+        val controller = window?.let { WindowCompat.getInsetsController(it, view) }
+        controller?.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller?.hide(WindowInsetsCompat.Type.systemBars())
+        onDispose { controller?.show(WindowInsetsCompat.Type.systemBars()) }
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        VideoStage(player = player, modifier = Modifier.fillMaxSize())
+
+        // White, because the controls inherit the light theme's ink and would be a black
+        // play icon on black video.
+        CompositionLocalProvider(LocalContentColor provides Color.White) {
+            PlayerControls(
+                player = player,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .background(StreamlyColors.VideoBackground.copy(alpha = 0.6f))
+                    .navigationBarsPadding(),
+            )
         }
     }
 }
