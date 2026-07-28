@@ -523,3 +523,35 @@ disagree.
 carries its own copy, which is why D-020's bottom-scrim overlay is gone — same controls,
 drawn once, in the stage. The controls do not auto-hide; that remains true in both
 orientations, for the reason given in D-020.
+
+---
+
+## D-022 — A fullscreen button that rotates the device, and a hand-built seek bar
+
+**Status:** Accepted · 2026-07-28
+
+Two changes to the control layer D-021 put on the stage, both to make it read like the
+players people actually use.
+
+**The seek bar is built from `Slider`'s `thumb` and `track` slots.** M3's default is a 16dp
+expressive control with a wide pill thumb, which is fine in a settings screen and far too
+heavy sitting on video. The slots take a 3dp track and a 12dp round thumb. Those slots are
+still `@ExperimentalMaterial3Api` in this version, which is the reason for the opt-in — the
+alternative is drawing the bar on a `Canvas` and reimplementing tap-to-seek and drag, for a
+worse result.
+
+**Fullscreen is a button, and the button rotates the device.** It sets
+`requestedOrientation` to `USER_LANDSCAPE` and back to `USER_PORTRAIT`, rather than
+introducing an `isFullscreen` flag in `PlayerUiState`.
+
+Landscape already *is* fullscreen (D-020). A separate in-app fullscreen state would mean two
+ways to be fullscreen that could disagree — rotate to landscape with the flag false, and the
+screen has to decide which wins. Deriving it from the window size class keeps exactly one
+source of truth, and the button becomes a request to change the window rather than a piece of
+state to maintain. It also stays out of `PlayerUiState`, which has no business tracking
+device orientation.
+
+**Consequence:** the Player locks the activity's orientation while it is open, so a
+`DisposableEffect` resets it to `UNSPECIFIED` on exit. Without that reset the lock outlives
+the screen and every other tab inherits it. Verified on device: after leaving the Player,
+rotating the emulator turns the rest of the app again.

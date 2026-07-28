@@ -33,6 +33,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import android.content.pm.ActivityInfo
 import androidx.activity.compose.LocalActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -64,12 +65,36 @@ fun PlayerScreen(
         modifier = modifier,
         onRetry = { onIntent(PlayerIntent.Retry) },
     ) { video ->
+        val activity = LocalActivity.current
+        val isFullscreen = windowSizeClass.heightSizeClass == WindowHeightSizeClass.Compact
+
+        // The button rotates the device rather than inventing a second fullscreen state:
+        // landscape already *is* fullscreen, so one concept covers both entry paths.
+        val onToggleFullscreen = {
+            activity?.requestedOrientation = if (isFullscreen) {
+                ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT
+            } else {
+                ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
+            }
+        }
+
+        // Without this the lock outlives the screen and every other tab inherits it.
+        DisposableEffect(activity) {
+            onDispose {
+                activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            }
+        }
+
         // Height, not width, is what runs out: a phone in landscape is Compact-height, and
         // there is no arrangement of a 16:9 stage plus a details column that leaves either
         // one usable. Landscape means fullscreen, which is what every video app does and
         // what the details are worth giving up for.
-        if (windowSizeClass.heightSizeClass == WindowHeightSizeClass.Compact) {
-            FullscreenStage(player = player, onBack = onBack)
+        if (isFullscreen) {
+            FullscreenStage(
+                player = player,
+                onBack = onBack,
+                onToggleFullscreen = onToggleFullscreen,
+            )
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Outside the list on purpose. Scrolling the stage away would leave the
@@ -77,6 +102,8 @@ fun PlayerScreen(
                 VideoStage(
                     player = player,
                     onBack = onBack,
+                    isFullscreen = false,
+                    onToggleFullscreen = onToggleFullscreen,
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(16f / 9f),
@@ -100,6 +127,7 @@ fun PlayerScreen(
 private fun FullscreenStage(
     player: Player,
     onBack: () -> Unit,
+    onToggleFullscreen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
@@ -118,6 +146,8 @@ private fun FullscreenStage(
     VideoStage(
         player = player,
         onBack = onBack,
+        isFullscreen = true,
+        onToggleFullscreen = onToggleFullscreen,
         modifier = modifier
             .fillMaxSize()
             .navigationBarsPadding(),
@@ -289,6 +319,8 @@ private fun ActionButton(
 private fun VideoStage(
     player: Player,
     onBack: () -> Unit,
+    isFullscreen: Boolean,
+    onToggleFullscreen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val presentationState = rememberPresentationState(player)
@@ -324,6 +356,11 @@ private fun VideoStage(
 
         // Last, so it sits above the shutter — reaching Back during a slow buffer should
         // not require waiting for the first frame.
-        PlayerControls(player = player, onBack = onBack)
+        PlayerControls(
+            player = player,
+            onBack = onBack,
+            isFullscreen = isFullscreen,
+            onToggleFullscreen = onToggleFullscreen,
+        )
     }
 }

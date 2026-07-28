@@ -1,6 +1,7 @@
 package io.github.mabrur.streamly.ui.player
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,10 +17,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,8 +31,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -55,10 +58,15 @@ import io.github.mabrur.streamly.core.designsystem.theme.StreamlyShapes
  * Driven by the media3-compose state holders directly against [player] rather than routed
  * through the MVI intent channel — see D-008.
  */
+// The thumb/track slots are the only way to get a thin seek bar; they are still
+// experimental in this material3 version.
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerControls(
     player: Player,
     onBack: () -> Unit,
+    isFullscreen: Boolean,
+    onToggleFullscreen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -124,6 +132,9 @@ fun PlayerControls(
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
+            // M3's default slider is a 16dp-tall expressive control — far too heavy sitting
+            // on a video. Custom thumb and track give the thin bar players actually use.
+            val fraction = if (duration > 0) position.toFloat() / duration else 0f
             Slider(
                 value = position.toFloat(),
                 onValueChange = { scrubPosition = it },
@@ -133,17 +144,37 @@ fun PlayerControls(
                 },
                 valueRange = 0f..(if (duration > 0) duration.toFloat() else 1f),
                 enabled = duration > 0,
-                colors = SliderDefaults.colors(
-                    thumbColor = Color.White,
-                    activeTrackColor = StreamlyColors.Accent,
-                    inactiveTrackColor = StreamlyColors.OnVideoTrack,
-                ),
+                modifier = Modifier.height(16.dp),
+                thumb = {
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .clip(CircleShape)
+                            .background(StreamlyColors.Accent),
+                    )
+                },
+                track = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .clip(CircleShape)
+                            .background(StreamlyColors.OnVideoTrack),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(fraction)
+                                .height(3.dp)
+                                .background(StreamlyColors.Accent),
+                        )
+                    }
+                },
             )
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -152,19 +183,65 @@ fun PlayerControls(
                     style = MaterialTheme.typography.labelMedium,
                     color = Color.White,
                 )
-                // A word rather than a glyph, for the same reason as the pause bars:
-                // core has no volume icon, and "Muted" is not ambiguous.
-                Text(
-                    text = if (mute.showMuted) "Muted" else "Mute",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White,
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(StreamlyColors.OnVideoFill)
-                        .clickable(enabled = mute.isEnabled, onClick = mute::onClick)
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    // A word rather than a glyph: core has no volume icon, and "Muted"
+                    // is not ambiguous.
+                    Text(
+                        text = if (mute.showMuted) "Muted" else "Mute",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(StreamlyColors.OnVideoFill)
+                            .clickable(enabled = mute.isEnabled, onClick = mute::onClick)
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                    )
+                    OnVideoButton(onClick = onToggleFullscreen, size = 34.dp) {
+                        FullscreenGlyph(expand = !isFullscreen)
+                    }
+                }
             }
+        }
+    }
+}
+
+/**
+ * Four corner brackets — pointing outward to enter fullscreen, inward to leave it.
+ * Drawn rather than imported: `material-icons-core` has no fullscreen glyph either.
+ */
+@Composable
+private fun FullscreenGlyph(expand: Boolean) {
+    Canvas(modifier = Modifier.size(16.dp)) {
+        val arm = size.minDimension * 0.36f
+        val stroke = 1.5.dp.toPx()
+        val inset = if (expand) 0f else arm
+        // Each corner is two arms meeting at a right angle. Pointing inward is the same
+        // bracket moved in by one arm length and mirrored, which is what `dir` does.
+        val dir = if (expand) 1f else -1f
+
+        listOf(
+            Offset(inset, inset) to Offset(1f, 1f),
+            Offset(size.width - inset, inset) to Offset(-1f, 1f),
+            Offset(inset, size.height - inset) to Offset(1f, -1f),
+            Offset(size.width - inset, size.height - inset) to Offset(-1f, -1f),
+        ).forEach { (corner, sign) ->
+            drawLine(
+                color = Color.White,
+                start = corner,
+                end = Offset(corner.x + sign.x * dir * arm, corner.y),
+                strokeWidth = stroke,
+                cap = StrokeCap.Round,
+            )
+            drawLine(
+                color = Color.White,
+                start = corner,
+                end = Offset(corner.x, corner.y + sign.y * dir * arm),
+                strokeWidth = stroke,
+                cap = StrokeCap.Round,
+            )
         }
     }
 }

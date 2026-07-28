@@ -159,8 +159,11 @@ This list grows as features land; it currently covers what is built.
   breakpoints without a failing case behind them are layout code nobody asked for.
 - **Landscape hides the Player's details rather than laying them out.** Title, actions and
   the up-next list are one rotation away, not on screen. That is the fullscreen convention
-  (D-020), not an oversight — but there is no in-app fullscreen toggle, so portrait cannot
-  reach fullscreen without rotating the device.
+  (D-020), not an oversight. The fullscreen button rotates the device to get there (D-022),
+  so on a device with rotation locked in system settings it is the only way in.
+- **The Player's controls never auto-hide.** They sit over the video permanently rather than
+  fading out after a few seconds. Deliberate — a timer is more code and less discoverable —
+  but it does mean the bottom of the frame is always partly covered.
 - The MockEngine fails roughly one request in eight by design, so error states are genuinely
   reachable in the demo. This is deliberate, not a bug.
 - No instrumented tests. Unit tests cover ViewModel intent→state transitions and all display
