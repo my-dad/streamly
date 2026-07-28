@@ -76,7 +76,7 @@ fun StreamlyApp(
 @Composable
 private fun StreamlyNavHost(
     startKey: StreamlyKey,
-    @Suppress("UNUSED_PARAMETER") windowSizeClass: WindowSizeClass,
+    windowSizeClass: WindowSizeClass,
     modifier: Modifier = Modifier,
 ) {
     val backStack = rememberNavBackStack(startKey)
@@ -168,6 +168,7 @@ private fun StreamlyNavHost(
                 entry<StreamlyKey.Player> { key ->
                     PlayerRoute(
                         videoId = key.videoId,
+                        windowSizeClass = windowSizeClass,
                         // Replaces the top key rather than pushing, so Back returns to
                         // Home instead of walking a chain of Player entries.
                         onOpenVideo = { videoId ->

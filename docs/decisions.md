@@ -417,3 +417,38 @@ effect rather than a timer.
 
 **Consequence:** display duration is presentation state and is not unit-tested. What is tested
 is that the right effect is raised — which is the part that can regress silently.
+
+---
+
+## D-019 — Adaptive layout keys on window *height*, and only the Player screen gets it
+
+**Status:** Accepted · 2026-07-28
+
+`WindowSizeClass` was plumbed from `MainActivity` to `StreamlyNavHost` in Phase 2 and then
+sat unused behind a `@Suppress("UNUSED_PARAMETER")`. It is now consumed, in one place.
+
+Two narrowings, both deliberate:
+
+**Height, not width.** The failure this fixes is a phone in landscape: a full-width 16:9
+stage consumes the entire viewport and pushes the title, action row, transport controls and
+up-next list off-screen with no way to reach them. That condition is
+`heightSizeClass == Compact`, and branching on width would not catch it — the same phone is
+`widthSizeClass == Expanded` there, which is also true of a tablet in portrait, where the
+single-column layout is correct and should not change.
+
+**Player only.** Home, Downloads and Profile are lists whose single-column layout stays
+usable at every size class. Adding breakpoints they do not need would be layout code with no
+failing case behind it. The other screens can adopt a size class when one of them actually
+breaks.
+
+A second change came with it: the Player's details were a `Column` wrapping a `LazyColumn`,
+which pinned the title, channel row, actions and controls above a separately-scrolling
+up-next list. They are now items in one `LazyColumn`, shared between both arrangements as a
+`LazyListScope.details()` extension, so the two layouts cannot drift apart. The surface also
+gained `resizeWithContentScale(ContentScale.Fit)`, because the landscape pane is not 16:9 and
+without it the picture would stretch — the same class of defect that `ContentScale.Crop`
+fixed in Shorts (D-016).
+
+**Consequence:** the README's "Player does not adapt to landscape" limitation is addressed in
+code but stays listed until a device confirms it, and the Status checkbox stays unticked for
+the same reason. Rotation safety is unaffected — nothing here touches player ownership.
