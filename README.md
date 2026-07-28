@@ -187,5 +187,9 @@ This list grows as features land; it currently covers what is built.
   and `FOREGROUND_SERVICE_DATA_SYNC` are only enforced from API 34, and the emulator used
   throughout is API 33. Both are declared and confirmed present in the merged manifest, but
   no device that enforces them has run this build.
+- **The Downloads screen's error state is unreachable.** `DownloadsUiState.error` is
+  modelled and rendered like every other screen's, but nothing ever sets it — a failing
+  download surfaces as a row status instead. Found by the `ContentState` sweep (plan task
+  8.1), left as-is rather than wired up on the way past.
 - **Downloads are not resumed after a reboot.** `DownloadService.getScheduler()` returns
   `null` deliberately — restoring them needs WorkManager, which the PRD does not ask for.
