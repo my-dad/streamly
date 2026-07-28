@@ -2,6 +2,7 @@ package io.github.mabrur.streamly.ui.player
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,6 +22,8 @@ import androidx.lifecycle.repeatOnLifecycle
 @Composable
 fun PlayerRoute(
     videoId: String,
+    windowSizeClass: WindowSizeClass,
+    onBack: () -> Unit,
     onOpenVideo: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PlayerViewModel = hiltViewModel(),
@@ -65,6 +68,8 @@ fun PlayerRoute(
         PlayerScreen(
             state = state,
             player = viewModel.player,
+            windowSizeClass = windowSizeClass,
+            onBack = onBack,
             onIntent = viewModel::onIntent,
         )
         StreamlyToastHost(

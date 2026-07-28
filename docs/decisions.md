@@ -417,3 +417,204 @@ effect rather than a timer.
 
 **Consequence:** display duration is presentation state and is not unit-tested. What is tested
 is that the right effect is raised — which is the part that can regress silently.
+
+---
+
+## D-019 — Adaptive layout keys on window *height*, and only the Player screen gets it
+
+**Status:** Superseded by D-020 · 2026-07-28
+
+`WindowSizeClass` was plumbed from `MainActivity` to `StreamlyNavHost` in Phase 2 and then
+sat unused behind a `@Suppress("UNUSED_PARAMETER")`. It is now consumed, in one place.
+
+Two narrowings, both deliberate:
+
+**Height, not width.** The failure this fixes is a phone in landscape: a full-width 16:9
+stage consumes the entire viewport and pushes the title, action row, transport controls and
+up-next list off-screen with no way to reach them. That condition is
+`heightSizeClass == Compact`, and branching on width would not catch it — the same phone is
+`widthSizeClass == Expanded` there, which is also true of a tablet in portrait, where the
+single-column layout is correct and should not change.
+
+**Player only.** Home, Downloads and Profile are lists whose single-column layout stays
+usable at every size class. Adding breakpoints they do not need would be layout code with no
+failing case behind it. The other screens can adopt a size class when one of them actually
+breaks.
+
+A second change came with it: the Player's details were a `Column` wrapping a `LazyColumn`,
+which pinned the title, channel row, actions and controls above a separately-scrolling
+up-next list. They are now items in one `LazyColumn`, shared between both arrangements as a
+`LazyListScope.details()` extension, so the two layouts cannot drift apart. The surface also
+gained `resizeWithContentScale(ContentScale.Fit)`, because the landscape pane is not 16:9 and
+without it the picture would stretch — the same class of defect that `ContentScale.Crop`
+fixed in Shorts (D-016).
+
+**Consequence:** the README's "Player does not adapt to landscape" limitation is addressed in
+code but stays listed until a device confirms it, and the Status checkbox stays unticked for
+the same reason. Rotation safety is unaffected — nothing here touches player ownership.
+
+---
+
+## D-020 — Landscape is fullscreen playback, not a two-pane layout
+
+**Status:** Accepted · 2026-07-28 · Supersedes D-019
+
+D-019 split the Player into a video pane and a details pane at Compact height. Built, run on
+the emulator, and rejected on sight: the up-next list took half a 2400×1080 window while the
+video was squeezed into a 1200-wide pane that letterboxed it to 1200×675, with 170px of black
+above and below. Both halves were compromised to avoid choosing between them.
+
+Compact height now renders the stage and nothing else, with the system bars hidden. The
+window is the video's. Rotating back, or leaving the screen, restores everything — the
+`DisposableEffect` that hides the bars is scoped to the landscape branch, so nothing else has
+to remember to undo it.
+
+What D-019 got right and this keeps: the branch is on **height**, not width, and no screen
+other than the Player consumes a size class.
+
+What it got wrong: it treated "the details are unreachable in landscape" as the problem to
+solve. The real problem is that a phone in landscape is a screen shaped for a video and
+nothing else, which is why every video app treats that orientation as fullscreen. The details
+are not lost — they are one rotation away, which is the gesture users already reach for.
+
+The transport controls stay, overlaid on a scrim at the bottom in white. Without them
+landscape would have no pause and no seek, and the only way to reach either would be to
+rotate out. They do not auto-hide on a timer: more code, and less discoverable.
+
+**Consequence:** the two-pane branch is gone, so this is less code than D-019 shipped.
+`ContentScale.Fit` still applies, so on a 20:9 phone the video pillarboxes to 1920×1080 with
+240px of black each side. That is the correct result for a 16:9 source on a 20:9 display and
+matches what other players do; cropping to fill would cut the picture.
+
+---
+
+## D-021 — Player controls live on the video, per the design
+
+**Status:** Accepted · 2026-07-28
+
+The transport controls were built under the action row, in the description area. The design
+puts them on the stage: `streamly.dc.html` lines 104–116 draw a back arrow top-left and a
+60px translucent circle with a play/pause glyph centred on the video, and its description
+area holds only the title, the offline label, the channel row and the three action buttons.
+They have moved to match.
+
+Three things the design does not answer, resolved here:
+
+**Seek, time and mute are not in the design at all.** PRD line 157 requires "play/pause,
+seek/scrub, mute, and a visible buffering state", and per D-017 the PRD outranks the design,
+so they cannot simply be dropped. They go in a bar along the bottom of the same stage rather
+than back under it — splitting the controls across two surfaces would be worse than either
+whole answer.
+
+**`material-icons-core` has no Pause and no volume glyph**, and the catalog deliberately
+excludes `material-icons-extended` (it is large, and the bottom bar needed four icons). Pause
+is drawn as the design draws it — two rounded white bars — and mute is the word "Mute" /
+"Muted". Pulling in the extended icon set for two glyphs is not a trade worth making.
+
+**White controls over an arbitrary video frame are legible by luck.** The design's stage is a
+flat `#0d0e24` with no picture behind it; a real one opens on a bright sky. Two gradient
+scrims, top and bottom, sit under the controls. The picture itself is not dimmed.
+
+The back arrow is new — the design has one and the screen had none, relying on the system
+gesture. It calls the same `backStack.removeLastOrNull()` the gesture does, so the two cannot
+disagree.
+
+**Consequence:** one control layer now serves both orientations. `FullscreenStage` no longer
+carries its own copy, which is why D-020's bottom-scrim overlay is gone — same controls,
+drawn once, in the stage. The controls do not auto-hide; that remains true in both
+orientations, for the reason given in D-020.
+
+---
+
+## D-022 — A fullscreen button that rotates the device, and a hand-built seek bar
+
+**Status:** Accepted · 2026-07-28
+
+Two changes to the control layer D-021 put on the stage, both to make it read like the
+players people actually use.
+
+**The seek bar is built from `Slider`'s `thumb` and `track` slots.** M3's default is a 16dp
+expressive control with a wide pill thumb, which is fine in a settings screen and far too
+heavy sitting on video. The slots take a 3dp track and a 12dp round thumb. Those slots are
+still `@ExperimentalMaterial3Api` in this version, which is the reason for the opt-in — the
+alternative is drawing the bar on a `Canvas` and reimplementing tap-to-seek and drag, for a
+worse result.
+
+**Fullscreen is a button, and the button rotates the device.** It sets
+`requestedOrientation` to `USER_LANDSCAPE` and back to `USER_PORTRAIT`, rather than
+introducing an `isFullscreen` flag in `PlayerUiState`.
+
+Landscape already *is* fullscreen (D-020). A separate in-app fullscreen state would mean two
+ways to be fullscreen that could disagree — rotate to landscape with the flag false, and the
+screen has to decide which wins. Deriving it from the window size class keeps exactly one
+source of truth, and the button becomes a request to change the window rather than a piece of
+state to maintain. It also stays out of `PlayerUiState`, which has no business tracking
+device orientation.
+
+**Consequence:** the Player locks the activity's orientation while it is open, so a
+`DisposableEffect` resets it to `UNSPECIFIED` on exit. Without that reset the lock outlives
+the screen and every other tab inherits it. Verified on device: after leaving the Player,
+rotating the emulator turns the rest of the app again.
+
+---
+
+## D-023 — The Player renders into a `TextureView`, like Shorts
+
+**Status:** Accepted · 2026-07-28
+
+Popping back from the Player left the video painting over Home for close to a second: Home's
+app bar, chips and bottom bar were all drawn, with the video still on top of them as a solid
+rectangle.
+
+A `SurfaceView` owns a compositor layer of its own, punched through the window. Compose can
+neither fade it nor remove it in the same frame as the composition it belongs to — the layer
+survives until SurfaceFlinger tears it down. Measured on the emulator by polling
+`dumpsys SurfaceFlinger --list` for the layer after tapping Back: **916ms**.
+
+Two fixes were tried and measured.
+
+**Turning off the entry's transitions** (`NavDisplay.transitionSpec` /
+`popTransitionSpec` / `predictivePopTransitionSpec` set to `None`) took it to **354ms** — the
+animation was most of the window, but not the cause. A screenshot taken immediately after
+Back still caught the video over Home. Reverted, since it traded a visible artefact for a
+smaller visible artefact plus an unmotivated loss of navigation animation.
+
+**Switching the surface to `TextureView`** removes it entirely: there is no separate layer,
+so `dumpsys` finds no `SurfaceView` layer to linger, over three runs. A TextureView draws in
+the normal view hierarchy and disappears with its composition, and it animates correctly
+through a `graphicsLayer` — which is the same reason the Shorts pager already used one
+(D-016). The comment there claiming the Player differs is now wrong and has been corrected.
+
+**Consequence:** the Player pays TextureView's extra copy per frame rather than SurfaceView's
+zero-copy path, and loses the ability to show DRM-protected content. Neither matters here —
+the catalog is public HLS — but a real app streaming licensed media would have to keep
+SurfaceView and solve the pop artefact another way, most likely by clearing the video surface
+before the pop rather than during it.
+
+---
+
+## D-024 — The Home app bar's decorative second circle is dropped
+
+**Status:** Accepted · 2026-07-28
+
+`streamly.dc.html` draws two circles in the Home app bar: one at `rgba(255,255,255,0.28)`
+with no `onClick`, and one at `0.42` that opens Profile. The design pass reproduced both,
+including the two alphas.
+
+The first is a placeholder — for search or notifications, most likely. Neither feature exists
+in this app and neither is in PRD §9. What shipped was therefore a 30dp circle sitting
+directly beside a real button, at a slightly different opacity, that does nothing when
+tapped. A dead control next to a live one is a worse outcome than an emptier app bar, and it
+is the kind of thing a reviewer taps first.
+
+It is removed rather than wired to something invented for it: adding a search screen to
+justify a circle in a mockup is scope the PRD does not ask for.
+
+This is the fourth PRD-versus-design conflict, and it resolves the same way as the three in
+D-017 — the running app wins over the picture when the picture describes a feature that does
+not exist.
+
+**Consequence:** the remaining avatar gained an `onClickLabel`. It is a bare `Box` with a
+background colour, so without one a screen reader announces an unlabelled clickable and the
+only route to Profile from Home is unreachable to it. The Profile *tab* still works, so this
+was a degradation rather than a block.

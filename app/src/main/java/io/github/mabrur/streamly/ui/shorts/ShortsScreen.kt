@@ -100,7 +100,7 @@ private fun ShortPage(
         if (player != null && isSettled) {
             val presentationState = rememberPresentationState(player)
 
-            // TEXTURE_VIEW, not SURFACE_VIEW — unlike the Player screen. A SurfaceView draws
+            // TEXTURE_VIEW, not SURFACE_VIEW. A SurfaceView draws
             // in its own layer behind the window and depends on the view hierarchy punching
             // a transparent hole for it. VerticalPager composites every page through a
             // graphicsLayer to offset it, so the hole is never punched: audio plays and

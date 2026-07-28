@@ -35,7 +35,12 @@ compiles and its unit tests pass.
       growing on disk, the completed item **plays in airplane mode** (confirmed by
       screenshot, not just by a rising position), Remove drops storage to zero, and a
       force-stop and relaunch while still offline leaves the download listed and playable
-- [ ] Adaptive layout via `WindowSizeClass` — not started
+- [x] **Adaptive layout via `WindowSizeClass`** — verified on an emulator: at Compact window
+      height (a phone in landscape) the Player goes fullscreen, system bars hidden, transport
+      controls overlaid; rotating back or leaving the screen restores the bars, and rotating
+      mid-playback keeps the same player and position with no re-buffer. In portrait the
+      stage stays pinned while the details and up-next list scroll under it. Every other
+      screen is deliberately unchanged — see D-020, which supersedes D-019
 
 Once Shorts and Downloads were merged together, the integrated build was re-checked for the
 one failure neither branch could produce alone — audio bleeding between the two playback
@@ -148,10 +153,17 @@ This list grows as features land; it currently covers what is built.
 - **Shorts restart from the beginning when you swipe back to them.** The pool holds only
   the settled page and its successor, so paging backwards re-prepares the stream at 0
   rather than resuming where you left it. Deliberate — it is what a shorts feed does.
-- **The Player screen does not adapt to landscape.** The 16:9 stage takes the full width, so
-  in landscape it consumes the whole height and pushes the title, Download button, controls
-  and up-next list off-screen with no scroll. Playback itself is correct and rotation-safe.
-  This is the `WindowSizeClass` work that is still outstanding.
+- **Only the Player adapts to window size.** Home, Downloads and Profile keep their
+  single-column layout at every size class, so in landscape a Home card is one very wide row.
+  They stay usable; they are not laid out for the space. Deliberate, recorded as D-019 —
+  breakpoints without a failing case behind them are layout code nobody asked for.
+- **Landscape hides the Player's details rather than laying them out.** Title, actions and
+  the up-next list are one rotation away, not on screen. That is the fullscreen convention
+  (D-020), not an oversight. The fullscreen button rotates the device to get there (D-022),
+  so on a device with rotation locked in system settings it is the only way in.
+- **The Player's controls never auto-hide.** They sit over the video permanently rather than
+  fading out after a few seconds. Deliberate — a timer is more code and less discoverable —
+  but it does mean the bottom of the frame is always partly covered.
 - The MockEngine fails roughly one request in eight by design, so error states are genuinely
   reachable in the demo. This is deliberate, not a bug.
 - No instrumented tests. Unit tests cover ViewModel intent→state transitions and all display
