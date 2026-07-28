@@ -32,6 +32,12 @@ object StreamlyColors {
     /** Video surfaces, Shorts background. */
     val VideoBackground = Color(0xFF0D0E24)
 
+    /** Control buttons sitting on top of video — the design's rgba(255,255,255,0.18). */
+    val OnVideoFill = Color(0x2EFFFFFF)
+
+    /** The unplayed part of a seek bar drawn over video. */
+    val OnVideoTrack = Color(0x4DFFFFFF)
+
     val Ready = Color(0xFF22C55E)
 
     /** The pulsing "Playing" dot on Shorts. */

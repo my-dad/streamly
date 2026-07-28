@@ -485,3 +485,41 @@ rotate out. They do not auto-hide on a timer: more code, and less discoverable.
 `ContentScale.Fit` still applies, so on a 20:9 phone the video pillarboxes to 1920×1080 with
 240px of black each side. That is the correct result for a 16:9 source on a 20:9 display and
 matches what other players do; cropping to fill would cut the picture.
+
+---
+
+## D-021 — Player controls live on the video, per the design
+
+**Status:** Accepted · 2026-07-28
+
+The transport controls were built under the action row, in the description area. The design
+puts them on the stage: `streamly.dc.html` lines 104–116 draw a back arrow top-left and a
+60px translucent circle with a play/pause glyph centred on the video, and its description
+area holds only the title, the offline label, the channel row and the three action buttons.
+They have moved to match.
+
+Three things the design does not answer, resolved here:
+
+**Seek, time and mute are not in the design at all.** PRD line 157 requires "play/pause,
+seek/scrub, mute, and a visible buffering state", and per D-017 the PRD outranks the design,
+so they cannot simply be dropped. They go in a bar along the bottom of the same stage rather
+than back under it — splitting the controls across two surfaces would be worse than either
+whole answer.
+
+**`material-icons-core` has no Pause and no volume glyph**, and the catalog deliberately
+excludes `material-icons-extended` (it is large, and the bottom bar needed four icons). Pause
+is drawn as the design draws it — two rounded white bars — and mute is the word "Mute" /
+"Muted". Pulling in the extended icon set for two glyphs is not a trade worth making.
+
+**White controls over an arbitrary video frame are legible by luck.** The design's stage is a
+flat `#0d0e24` with no picture behind it; a real one opens on a bright sky. Two gradient
+scrims, top and bottom, sit under the controls. The picture itself is not dimmed.
+
+The back arrow is new — the design has one and the screen had none, relying on the system
+gesture. It calls the same `backStack.removeLastOrNull()` the gesture does, so the two cannot
+disagree.
+
+**Consequence:** one control layer now serves both orientations. `FullscreenStage` no longer
+carries its own copy, which is why D-020's bottom-scrim overlay is gone — same controls,
+drawn once, in the stage. The controls do not auto-hide; that remains true in both
+orientations, for the reason given in D-020.

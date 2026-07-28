@@ -53,6 +53,7 @@ fun PlayerScreen(
     state: PlayerUiState,
     player: Player,
     windowSizeClass: WindowSizeClass,
+    onBack: () -> Unit,
     onIntent: (PlayerIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -68,22 +69,23 @@ fun PlayerScreen(
         // one usable. Landscape means fullscreen, which is what every video app does and
         // what the details are worth giving up for.
         if (windowSizeClass.heightSizeClass == WindowHeightSizeClass.Compact) {
-            FullscreenStage(player = player)
+            FullscreenStage(player = player, onBack = onBack)
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Outside the list on purpose. Scrolling the stage away would leave the
-                // video playing where nobody can see it.
+                // video playing where nobody can see it — and take the controls with it.
                 VideoStage(
                     player = player,
+                    onBack = onBack,
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(16f / 9f),
                 )
-                // Everything below it is one list, so the title, actions and controls
-                // scroll with the up-next items instead of pinning above them and
-                // squeezing the list into whatever height was left.
+                // Everything below it is one list, so the title and actions scroll with
+                // the up-next items instead of pinning above them and squeezing the list
+                // into whatever height was left.
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    details(video, state, onIntent, player)
+                    details(video, state, onIntent)
                 }
             }
         }
@@ -91,15 +93,13 @@ fun PlayerScreen(
 }
 
 /**
- * Landscape: the video and nothing else, with the system bars out of the way.
- *
- * The transport controls stay — without them there is no pause and no seek here, and the
- * only way to reach one would be to rotate back. They sit over a scrim at the bottom
- * rather than auto-hiding on a timer, which would be more code for less discoverability.
+ * Landscape: the video and nothing else, with the system bars out of the way. The stage
+ * already carries the controls, so this only has to hand it the whole window.
  */
 @Composable
 private fun FullscreenStage(
     player: Player,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
@@ -115,28 +115,19 @@ private fun FullscreenStage(
         onDispose { controller?.show(WindowInsetsCompat.Type.systemBars()) }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        VideoStage(player = player, modifier = Modifier.fillMaxSize())
-
-        // White, because the controls inherit the light theme's ink and would be a black
-        // play icon on black video.
-        CompositionLocalProvider(LocalContentColor provides Color.White) {
-            PlayerControls(
-                player = player,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .background(StreamlyColors.VideoBackground.copy(alpha = 0.6f))
-                    .navigationBarsPadding(),
-            )
-        }
-    }
+    VideoStage(
+        player = player,
+        onBack = onBack,
+        modifier = modifier
+            .fillMaxSize()
+            .navigationBarsPadding(),
+    )
 }
 
 private fun LazyListScope.details(
     video: VideoUi,
     state: PlayerUiState,
     onIntent: (PlayerIntent) -> Unit,
-    player: Player,
 ) {
     item {
         Text(
@@ -170,8 +161,6 @@ private fun LazyListScope.details(
     }
 
     item { ActionRow(state = state, onIntent = onIntent) }
-
-    item { PlayerControls(player = player) }
 
     items(items = state.related, key = { it.id }) { related ->
         VideoCard(
@@ -288,8 +277,9 @@ private fun ActionButton(
 }
 
 /**
- * Video stage. The caller sizes it — 16:9 across the width in portrait, a full-height
- * pane in landscape — so the surface must fit itself to whatever box it is handed.
+ * Video stage, with the controls on it. The caller sizes it — 16:9 across the width in
+ * portrait, the whole window in landscape — so the surface must fit itself to whatever
+ * box it is handed.
  *
  * [rememberPresentationState] drives the shutter: `coverSurface` stays true until the
  * first frame is rendered, so the spinner is a genuine buffering indicator rather than
@@ -298,6 +288,7 @@ private fun ActionButton(
 @Composable
 private fun VideoStage(
     player: Player,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val presentationState = rememberPresentationState(player)
@@ -330,5 +321,9 @@ private fun VideoStage(
                 CircularProgressIndicator(color = Color.White)
             }
         }
+
+        // Last, so it sits above the shutter — reaching Back during a slow buffer should
+        // not require waiting for the first frame.
+        PlayerControls(player = player, onBack = onBack)
     }
 }

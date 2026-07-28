@@ -23,6 +23,7 @@ import androidx.lifecycle.repeatOnLifecycle
 fun PlayerRoute(
     videoId: String,
     windowSizeClass: WindowSizeClass,
+    onBack: () -> Unit,
     onOpenVideo: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PlayerViewModel = hiltViewModel(),
@@ -68,6 +69,7 @@ fun PlayerRoute(
             state = state,
             player = viewModel.player,
             windowSizeClass = windowSizeClass,
+            onBack = onBack,
             onIntent = viewModel::onIntent,
         )
         StreamlyToastHost(

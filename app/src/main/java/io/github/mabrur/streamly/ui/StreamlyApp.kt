@@ -169,6 +169,9 @@ private fun StreamlyNavHost(
                     PlayerRoute(
                         videoId = key.videoId,
                         windowSizeClass = windowSizeClass,
+                        // Same pop as the system back gesture, so the on-video arrow and
+                        // the gesture cannot disagree about where Back goes.
+                        onBack = { backStack.removeLastOrNull() },
                         // Replaces the top key rather than pushing, so Back returns to
                         // Home instead of walking a chain of Player entries.
                         onOpenVideo = { videoId ->

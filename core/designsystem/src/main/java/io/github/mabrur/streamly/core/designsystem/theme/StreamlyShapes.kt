@@ -10,6 +10,9 @@ object StreamlyShapes {
     val Thumbnail = RoundedCornerShape(14.dp)
     val SmallThumbnail = RoundedCornerShape(10.dp)
     val Button = RoundedCornerShape(12.dp)
+
+    /** The pause glyph's bars. */
+    val Bar = RoundedCornerShape(2.dp)
     val Dialog = RoundedCornerShape(18.dp)
     val Logo = RoundedCornerShape(22.dp)
 
