@@ -66,9 +66,10 @@ fun DownloadsScreen(
         }
         HorizontalDivider(color = StreamlyColors.Divider)
 
+        // No `error` argument: this screen reads DownloadManager on the device, which has
+        // no failure this screen can render. See D-025.
         ContentState(
             isLoading = state.isLoading,
-            error = state.error,
             data = state.items,
             isEmpty = { it.isEmpty() },
         ) { items ->

@@ -618,3 +618,32 @@ not exist.
 background colour, so without one a screen reader announces an unlabelled clickable and the
 only route to Profile from Home is unreachable to it. The Profile *tab* still works, so this
 was a degradation rather than a block.
+
+---
+
+## D-025 — `DownloadsUiState` carries no `error`, and `ContentState`'s is optional
+
+**Status:** Accepted · 2026-07-28
+
+The `ContentState` sweep (plan task 8.1) found that `DownloadsUiState.error` was declared,
+rendered, and never assigned anything but `null`. The field is now gone.
+
+**This deviates from a hard constraint.** AGENTS.md's MVI contract says to model loading,
+empty, and error inside *every* `UiState`. The rule is right for the four screens that fetch
+through the MockEngine. Downloads does not: it observes `DownloadManager` on the device, and
+a download that fails arrives as a `DownloadStatus.Failed` on its row, not as a condition
+that blanks the screen. A user with nine good downloads and one failure should see nine rows
+and a failure, not a full-screen "No connection" with a Retry that has nothing to retry.
+
+Keeping the field was the worse option in both directions: it satisfied the letter of the
+constraint while being unreachable by any user, any test, and any code path — the kind of
+thing that reads as coverage until someone checks.
+
+`ContentState`'s `error` parameter now defaults to `null` and moved below `data`, so a screen
+with no failure to render omits it rather than passing `null` explicitly. The four screens
+that can fail pass it exactly as before.
+
+**Consequence:** "every UiState models an error" is no longer literally true, and a reviewer
+checking that mechanically will find one exception. This entry is the answer. The rule should
+probably read "every UiState that can fail" — proposed for AGENTS.md rather than edited into
+it, per the standing instruction not to change that file without sign-off.

@@ -326,16 +326,16 @@ sources restored afterwards (`git status` clean before the real APK was rebuilt)
 | Home | ✅ spinner | ✅ "Nothing here yet" (chips still shown) | ✅ "No connection" + Retry |
 | Shorts | ✅ spinner | ✅ "Nothing here yet" | ✅ "No connection" + Retry |
 | Player | ✅ spinner | n/a — no `isEmpty` predicate | ✅ "No connection" + Retry |
-| Downloads | ⚠️ not observable | ✅ "Nothing here yet", header reads `0 B used` | ⚠️ unreachable |
+| Downloads | ⚠️ not observable | ✅ "Nothing here yet", header reads `0 B used` | n/a — field dropped, D-025 |
 | Profile | ✅ spinner | n/a — no `isEmpty` predicate | ✅ "No connection" + Retry |
 
-**Two findings, neither fixed here.**
+**Two findings. The first was acted on.**
 
-`DownloadsUiState.error` is declared, is rendered by `ContentState`, and is **never set** —
-the flow assigns `error = null` unconditionally. A failing download surfaces as a row status
-rather than a screen error, which is arguably the right design, but the screen-level branch
-is currently dead code that no test and no user can reach. Either wire it to a `Storage`
-failure or drop the field; leaving it is the worst of the three.
+`DownloadsUiState.error` was declared, rendered by `ContentState`, and **never set** — the
+flow assigned `error = null` unconditionally. A failing download surfaces as a row status
+rather than a screen error, which is the right design, so the field was **dropped** rather
+than wired up. `ContentState`'s `error` parameter now defaults to `null` for screens that
+cannot fail. Recorded as D-025, because it deviates from the MVI rule in `AGENTS.md`.
 
 Downloads' loading state is real but not observable: its data comes from `DownloadManager` on
 the device, not through the MockEngine, so there is no latency to catch it in. Nothing to fix
