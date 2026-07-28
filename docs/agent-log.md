@@ -127,3 +127,82 @@ the Downloads work had introduced. **121 tests, 0 failures.**
 
 **Not verified, and reported as such:** the API 34+ foreground-service manifest lines cannot
 be exercised on the API 33 emulator available here, and no LeakCanary reading was taken.
+
+---
+
+## 2026-07-27 — The design pass, applied last on purpose
+
+**Tool:** Claude Code (Opus 5)
+**Prompts:**
+- "now lets do the design part, use the design file"
+- "continue"
+
+**Result:** Took `streamly.dc.html` and applied it as a presentation-layer pass over seven
+working screens, sequenced last because PRD §1 scores pixel-perfect UI at roughly zero and
+names visual polish as the first thing to cut. Nothing about behaviour changed. Landed as
+`StreamlyColors`/`StreamlyShapes` tokens, custom tab icons, a toast pill, and restyles of
+onboarding, the Home app bar, chips, cards, player chrome, shorts overlays, downloads and
+profile.
+
+**Three places where the design and PRD §9 disagreed, and the PRD won all three** — recorded
+as D-017. The design's Player has no up-next list and its Downloads rows have no remove
+control; both are §9 requirements and both were kept. The third is the interesting one: the
+plan had resolved "email sign-in with no input field" *in favour of the design*, and that
+resolution was overruled during execution. Following it would have deleted a working,
+tested, device-verified flow to save a `TextField`.
+
+**One instruction from the plan was not followed.** It specified `toastMessage: String?` in
+each screen's `UiState` with the ViewModel clearing it on a timer. AGENTS.md names snackbars
+explicitly as one-shot events that travel by `Effect`, and state-held toasts replay on every
+configuration change. Built as effects instead; recorded as D-018 with the reasoning, rather
+than silently diverging.
+
+**Not verified:** the screens were never compared against the design on a device in this
+session, and three checks in the plan stayed open — the dot rail (never built), notched-device
+insets (the emulator has no cutout), and tablet width.
+
+---
+
+## 2026-07-28 — The Player, rebuilt twice against what the emulator actually showed
+
+**Tool:** Claude Code (Opus 5)
+**Prompts:**
+- "Whats our next plan?" · "why cant you see? I have emulator attached. Run there and check
+  with help of adb"
+- "why my layout loooks like this? on full screen?" · "connect the device with adb and
+  observe. There is the list view shoiwng on the half of the screen"
+- "i have some feedback on the player. According to the design I provided, the play pause
+  seekbar is not on the videoview itself rather its on the description area"
+- "the seekbar looks too big. Just like youtube make it look like that"
+- "open a video then tap back button, it goes back but the video stays for a bit on home
+  page. Check with ADB"
+- "On the app bar why there is two circles?"
+
+**Result:** This session's premise was wrong at the start. AGENTS.md states "You cannot run
+instrumented tests or launch an emulator. No device is attached." A device *was* attached,
+and once `adb` was actually used, the emulator overturned four decisions in a row that had
+compiled, passed tests, and read fine on paper.
+
+1. **Two-pane landscape (D-019) survived one screenshot.** It gave the up-next list half a
+   2400×1080 window and letterboxed the video into the other half. Replaced by fullscreen
+   landscape, D-020 — *less* code than what it superseded.
+2. **A regression I introduced myself:** folding the stage into the `LazyColumn` scrolled the
+   video off-screen in portrait, still playing where nobody could see it.
+3. **The controls were in the wrong place**, and the correction was checked against the
+   design file rather than accepted — the user's description of it was inverted, and
+   `streamly.dc.html` lines 104–116 settled it. D-021.
+4. **The lingering-video bug was measured, not guessed.** Polling
+   `dumpsys SurfaceFlinger --list` after Back: 916 ms. The first fix — disabling the entry's
+   Nav3 transitions — got it to 354 ms and was **reverted**, because a screenshot still
+   caught the video over Home: the animation was most of the window but not the cause. A
+   `TextureView` removes the layer entirely. D-023.
+
+Also dropped a dead control the design pass had faithfully copied: a 30dp circle in the Home
+app bar with no handler, sitting beside a real one (D-024). Fourth PRD-versus-design
+conflict, resolved like the three in D-017.
+
+**124 tests, 0 failures.** Every claim above was checked on the API 33 emulator with
+screenshots or `dumpsys` output, not inferred.
+
+**Still not verified here:** LeakCanary reported 0 distinct leaks in passing, but no
+deliberate leak run was done after these changes.

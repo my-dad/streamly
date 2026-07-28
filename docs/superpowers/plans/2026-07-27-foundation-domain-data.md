@@ -2,6 +2,14 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Status — 2026-07-28:** this plan was executed in full; its checkboxes were never ticked
+> as it ran, and are left as written rather than back-filled from memory. What shipped is
+> recorded where it can be checked: `docs/streamly-build-plan.md` tracks the phase, the
+> matching commits are in `git log`, and `docs/decisions.md` carries every decision the plan
+> produced. Later plans (Home feed, Player, Shorts, Downloads, design pass) were ticked task
+> by task as they ran, which is the habit this one predates.
+
+
 **Goal:** Split the bare single-module Android template into five Gradle modules and build a fully unit-tested domain + data layer — Ktor/MockEngine → DTO → mapper → domain model → repository → use case — with no UI yet.
 
 **Architecture:** `:domain` is a pure `kotlin("jvm")` module with zero Android dependencies, so the PRD's "no framework imports in domain" is enforced by Gradle rather than discipline. `:data` owns Ktor, DTOs, mappers, and DataStore, and exposes only domain interfaces through Hilt `@Binds`. `:app` depends inward on all of them and never sees a DTO or a Ktor type.

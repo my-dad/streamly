@@ -2,6 +2,14 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Status — 2026-07-28:** this plan was executed in full; its checkboxes were never ticked
+> as it ran, and are left as written rather than back-filled from memory. What shipped is
+> recorded where it can be checked: `docs/streamly-build-plan.md` tracks the phase, the
+> matching commits are in `git log`, and `docs/decisions.md` carries every decision the plan
+> produced. Later plans (Home feed, Player, Shorts, Downloads, design pass) were ticked task
+> by task as they ran, which is the habit this one predates.
+
+
 **Goal:** Build the `:core:designsystem` module and the Navigation 3 shell so the app launches to the correct start destination, switches between six placeholder screens via a bottom bar, and scopes every screen's ViewModel to its `NavEntry`.
 
 **Architecture:** A developer-owned `NavBackStack` of `@Serializable` `NavKey` route objects, rendered by `NavDisplay` with an `entryProvider`. ViewModels are scoped per-`NavEntry` by an explicitly-passed decorator, which is what later makes `onCleared()` fire on pop and release the ExoPlayer. Session gating is a pure function from `SessionState` to a start key, and the nav host is `key()`-ed on it so sign-out rebuilds the stack rather than mutating it.

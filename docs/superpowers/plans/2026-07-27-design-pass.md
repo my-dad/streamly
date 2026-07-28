@@ -891,13 +891,13 @@ git commit -m "docs(decisions): record D-010 design pass and PRD precedence" \
 
 ## Definition of done
 
-- [ ] `./gradlew assembleDebug` — `BUILD SUCCESSFUL`
-- [ ] 111 tests pass (8 domain, 20 data, 20 designsystem, 19 core:player, 44 app)
-- [ ] No colour literal outside `StreamlyColors.kt`; no dynamic colour
-- [ ] All 11 ship-plan audit checks still pass
-- [ ] `docs/decisions.md` contains D-001 … D-010
-- [ ] README's "shortcuts" section notes that Subscribe and Like are local, non-persisted UI state
-- [ ] Screens compared against the design on a device
+- [x] `./gradlew assembleDebug` — `BUILD SUCCESSFUL`
+- [x] Tests pass — 124, 0 failures (the 111 predicted here was always low; see the build plan's Status section)
+- [x] No colour literal outside `StreamlyColors.kt`; no dynamic colour
+- [x] Ship-plan audit re-run 2026-07-28 — 10 of 11 clean as written; check 8 flags `androidx.fragment` arriving transitively via `hilt-android`, with no `Fragment` in any source file. Noted in the build plan's Status section rather than papered over
+- [x] `docs/decisions.md` contains D-001 … D-024 (D-019 superseded by D-020)
+- [x] README's "shortcuts" section notes that Subscribe and Like are local, non-persisted UI state
+- [ ] Screens compared against the design on a device — **still open.** The Player was reworked on a device across D-019…D-024, but the other six screens have not been held up against `streamly.dc.html` on hardware
 
 **This is the last plan.** If the clock runs out before it, the app still satisfies every
 functional requirement in the PRD — which is the point of sequencing it here.
