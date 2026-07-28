@@ -1,7 +1,6 @@
 package io.github.mabrur.streamly.ui.downloads
 
 import androidx.compose.runtime.Immutable
-import io.github.mabrur.streamly.domain.error.AppError
 import io.github.mabrur.streamly.domain.model.DownloadStatus
 
 @Immutable
@@ -18,7 +17,6 @@ data class DownloadsUiState(
     val isLoading: Boolean = false,
     val items: List<DownloadRowUi> = emptyList(),
     val storageLabel: String = "",
-    val error: AppError? = null,
 )
 
 sealed interface DownloadsIntent {

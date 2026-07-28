@@ -40,7 +40,6 @@ class DownloadsViewModel @Inject constructor(
                             usedBytes = items.sumOf { item -> item.bytesDownloaded },
                             capBytes = STORAGE_CAP_BYTES,
                         ),
-                        error = null,
                     )
                 }
             }

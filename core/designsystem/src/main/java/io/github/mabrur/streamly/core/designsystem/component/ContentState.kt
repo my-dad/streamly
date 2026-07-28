@@ -31,9 +31,10 @@ import io.github.mabrur.streamly.domain.error.AppError
 @Composable
 fun <T> ContentState(
     isLoading: Boolean,
-    error: AppError?,
     data: T?,
     modifier: Modifier = Modifier,
+    /** Omit on screens with no failure to render — see D-025. */
+    error: AppError? = null,
     isEmpty: (T) -> Boolean = { false },
     onRetry: (() -> Unit)? = null,
     content: @Composable (T) -> Unit,
