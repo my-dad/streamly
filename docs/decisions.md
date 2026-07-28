@@ -555,3 +555,38 @@ device orientation.
 `DisposableEffect` resets it to `UNSPECIFIED` on exit. Without that reset the lock outlives
 the screen and every other tab inherits it. Verified on device: after leaving the Player,
 rotating the emulator turns the rest of the app again.
+
+---
+
+## D-023 — The Player renders into a `TextureView`, like Shorts
+
+**Status:** Accepted · 2026-07-28
+
+Popping back from the Player left the video painting over Home for close to a second: Home's
+app bar, chips and bottom bar were all drawn, with the video still on top of them as a solid
+rectangle.
+
+A `SurfaceView` owns a compositor layer of its own, punched through the window. Compose can
+neither fade it nor remove it in the same frame as the composition it belongs to — the layer
+survives until SurfaceFlinger tears it down. Measured on the emulator by polling
+`dumpsys SurfaceFlinger --list` for the layer after tapping Back: **916ms**.
+
+Two fixes were tried and measured.
+
+**Turning off the entry's transitions** (`NavDisplay.transitionSpec` /
+`popTransitionSpec` / `predictivePopTransitionSpec` set to `None`) took it to **354ms** — the
+animation was most of the window, but not the cause. A screenshot taken immediately after
+Back still caught the video over Home. Reverted, since it traded a visible artefact for a
+smaller visible artefact plus an unmotivated loss of navigation animation.
+
+**Switching the surface to `TextureView`** removes it entirely: there is no separate layer,
+so `dumpsys` finds no `SurfaceView` layer to linger, over three runs. A TextureView draws in
+the normal view hierarchy and disappears with its composition, and it animates correctly
+through a `graphicsLayer` — which is the same reason the Shorts pager already used one
+(D-016). The comment there claiming the Player differs is now wrong and has been corrected.
+
+**Consequence:** the Player pays TextureView's extra copy per frame rather than SurfaceView's
+zero-copy path, and loses the ability to show DRM-protected content. Neither matters here —
+the catalog is public HLS — but a real app streaming licensed media would have to keep
+SurfaceView and solve the pop artefact another way, most likely by clearing the video surface
+before the pop rather than during it.

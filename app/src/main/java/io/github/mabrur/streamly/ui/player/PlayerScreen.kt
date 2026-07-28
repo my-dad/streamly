@@ -40,7 +40,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.Player
 import androidx.media3.ui.compose.PlayerSurface
-import androidx.media3.ui.compose.SURFACE_TYPE_SURFACE_VIEW
+import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
 import androidx.media3.ui.compose.modifiers.resizeWithContentScale
 import androidx.media3.ui.compose.state.rememberPresentationState
 import io.github.mabrur.streamly.core.designsystem.component.ContentState
@@ -331,7 +331,11 @@ private fun VideoStage(
     ) {
         PlayerSurface(
             player = player,
-            surfaceType = SURFACE_TYPE_SURFACE_VIEW,
+            // TEXTURE_VIEW, not SURFACE_VIEW. A SurfaceView owns a compositor layer of its
+            // own, which outlives the composable by a few frames: popping back to Home left
+            // the video painting over an already-drawn Home for ~900ms. A TextureView draws
+            // in the normal hierarchy and vanishes with the composition. See D-023.
+            surfaceType = SURFACE_TYPE_TEXTURE_VIEW,
             // Fit, not Crop: the landscape pane is not 16:9, and cropping a long-form
             // video to fill it would cut the picture. Letterboxing into the black stage
             // is what a player does. A no-op in portrait, where the box already matches.
