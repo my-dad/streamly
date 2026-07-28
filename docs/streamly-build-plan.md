@@ -119,12 +119,11 @@ position drop seen once and never reproduced.
 
 Phases 0–7 are complete and every feature in them is verified on an API 33 emulator; the
 README's Status checklist is the authority on *what was verified how*, and this file is the
-authority on *which plan tasks ran*. Phase 8 is complete except for three items, left
+authority on *which plan tasks ran*. Phase 8 is complete except for two items, left
 unticked deliberately:
 
-- **8.1** — the loading/empty/error sweep was never run as a deliberate pass. Every screen
-  does route through `ContentState`, and the Home error state was exercised on a device, but
-  "force each state on all seven screens and confirm it renders" did not happen.
+- **8.1** — **done 2026-07-28.** Results, including two findings, are in the sweep table at
+  the end of Phase 8.
 - **8.9** — the demo recording. Not startable by an agent; the last graded deliverable.
 - **8.10** — CI, marked optional in this plan and not attempted.
 
@@ -301,7 +300,7 @@ it now stands at **124**.
 
 **Goal:** ship. Deliverables are graded; a perfect app that isn't demoed scores nothing.
 
-- [ ] **8.1** Sweep all seven screens for loading / empty / error via `ContentState`. Force each state and confirm it renders.
+- [x] **8.1** Sweep all seven screens for loading / empty / error via `ContentState`. Force each state and confirm it renders. **Done 2026-07-28 on the API 33 emulator** — see the sweep results below.
 - [x] **8.2** Architecture audit: no `data` imports in `ui`, no `MutableStateFlow` exposed, no Ktor/DTO types outside `:data`, no `AndroidView`, no Nav2/RxJava/Retrofit/XML layouts anywhere in the dependency tree.
 - [x] **8.3** Fill in `docs/decisions.md` for anything Phases 3–7 changed structurally.
 - [x] **8.4** Update `docs/agent-log.md` — it's still an empty template, and §10 counts it as workflow evidence.
@@ -309,6 +308,43 @@ it now stands at **124**.
 - [x] **8.6** Run the full §13 pre-submission checklist top to bottom.
 - [x] **8.7** Clean-clone build check: `git clone` to a fresh directory → `./gradlew assembleDebug`.
 - [x] **8.8** Build the debug APK; attach to a GitHub release or document the build steps.
+### Task 8.1 — `ContentState` sweep results (2026-07-28)
+
+Five of the seven screens use `ContentState`. Onboarding does not — it loads nothing remote,
+so it has no state to force — and the sign-out dialog is a confirmation over Profile rather
+than a data-bearing screen. Each state was forced with a throwaway build, captured, and the
+sources restored afterwards (`git status` clean before the real APK was rebuilt):
+
+- **loading** — `latencyMillis` raised to ~4 s in `mockCatalogEngine`.
+- **error** — `failEveryNth = 1` for Home/Shorts/Profile; `= 2` for the Player, so Home
+  succeeds on request 1 and the Player's detail fetch fails on request 2.
+- **empty** — `videos` and `shorts` emptied in `catalog.json`; Downloads reached by removing
+  the one download on the real build.
+
+| Screen | Loading | Empty | Error |
+|---|---|---|---|
+| Home | ✅ spinner | ✅ "Nothing here yet" (chips still shown) | ✅ "No connection" + Retry |
+| Shorts | ✅ spinner | ✅ "Nothing here yet" | ✅ "No connection" + Retry |
+| Player | ✅ spinner | n/a — no `isEmpty` predicate | ✅ "No connection" + Retry |
+| Downloads | ⚠️ not observable | ✅ "Nothing here yet", header reads `0 B used` | ⚠️ unreachable |
+| Profile | ✅ spinner | n/a — no `isEmpty` predicate | ✅ "No connection" + Retry |
+
+**Two findings, neither fixed here.**
+
+`DownloadsUiState.error` is declared, is rendered by `ContentState`, and is **never set** —
+the flow assigns `error = null` unconditionally. A failing download surfaces as a row status
+rather than a screen error, which is arguably the right design, but the screen-level branch
+is currently dead code that no test and no user can reach. Either wire it to a `Storage`
+failure or drop the field; leaving it is the worst of the three.
+
+Downloads' loading state is real but not observable: its data comes from `DownloadManager` on
+the device, not through the MockEngine, so there is no latency to catch it in. Nothing to fix
+— worth knowing before someone tries to screenshot it.
+
+**Player and Profile pass no `isEmpty` predicate**, so their empty branch defaults to false
+and cannot render. That is correct: a video detail or a profile that loaded successfully is
+never meaningfully "empty". Recorded so the gap reads as a decision rather than an oversight.
+
 - [ ] **8.9** Record the 2–4 min demo covering all seven screens, **ending with** download → real progress → airplane mode → offline playback.
 - [ ] **8.10** *(optional, only if time survives)* GitHub Actions `build + test`.
 
