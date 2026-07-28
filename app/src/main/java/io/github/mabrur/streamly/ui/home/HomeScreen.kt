@@ -53,21 +53,20 @@ fun HomeScreen(
                 style = MaterialTheme.typography.headlineSmall,
                 color = StreamlyColors.Surface,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(
-                    Modifier
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.28f)),
-                )
-                Box(
-                    Modifier
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.42f))
-                        .clickable { onIntent(HomeIntent.ProfileClicked) },
-                )
-            }
+            // The design draws a second, handler-less circle to its left — a placeholder
+            // for search or notifications, neither of which exists here. Shipping it would
+            // put a control that looks tappable next to one that is. See D-024.
+            Box(
+                Modifier
+                    .size(30.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.42f))
+                    .clickable(
+                        // A bare Box has nothing for a screen reader to announce.
+                        onClickLabel = "Open profile",
+                        onClick = { onIntent(HomeIntent.ProfileClicked) },
+                    ),
+            )
         }
 
         if (state.categories.isNotEmpty()) {

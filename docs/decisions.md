@@ -590,3 +590,31 @@ zero-copy path, and loses the ability to show DRM-protected content. Neither mat
 the catalog is public HLS — but a real app streaming licensed media would have to keep
 SurfaceView and solve the pop artefact another way, most likely by clearing the video surface
 before the pop rather than during it.
+
+---
+
+## D-024 — The Home app bar's decorative second circle is dropped
+
+**Status:** Accepted · 2026-07-28
+
+`streamly.dc.html` draws two circles in the Home app bar: one at `rgba(255,255,255,0.28)`
+with no `onClick`, and one at `0.42` that opens Profile. The design pass reproduced both,
+including the two alphas.
+
+The first is a placeholder — for search or notifications, most likely. Neither feature exists
+in this app and neither is in PRD §9. What shipped was therefore a 30dp circle sitting
+directly beside a real button, at a slightly different opacity, that does nothing when
+tapped. A dead control next to a live one is a worse outcome than an emptier app bar, and it
+is the kind of thing a reviewer taps first.
+
+It is removed rather than wired to something invented for it: adding a search screen to
+justify a circle in a mockup is scope the PRD does not ask for.
+
+This is the fourth PRD-versus-design conflict, and it resolves the same way as the three in
+D-017 — the running app wins over the picture when the picture describes a feature that does
+not exist.
+
+**Consequence:** the remaining avatar gained an `onClickLabel`. It is a bare `Box` with a
+background colour, so without one a screen reader announces an unlabelled clickable and the
+only route to Profile from Home is unreachable to it. The Profile *tab* still works, so this
+was a degradation rather than a block.
