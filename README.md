@@ -35,10 +35,12 @@ compiles and its unit tests pass.
       growing on disk, the completed item **plays in airplane mode** (confirmed by
       screenshot, not just by a rising position), Remove drops storage to zero, and a
       force-stop and relaunch while still offline leaves the download listed and playable
-- [ ] **Adaptive layout via `WindowSizeClass`** — written, awaiting device verification. The
-      Player splits into a video pane beside a scrolling details pane when the window is
-      Compact-height (a phone in landscape); every other screen is deliberately unchanged.
-      See D-019
+- [x] **Adaptive layout via `WindowSizeClass`** — verified on an emulator: the Player splits
+      into a video pane beside a scrolling details pane when the window is Compact-height (a
+      phone in landscape), the picture is letterboxed rather than stretched, the details pane
+      scrolls to the end of the up-next list, and rotating mid-playback keeps the same player
+      and position with no re-buffer. In portrait the stage stays pinned while everything
+      below it scrolls. Every other screen is deliberately unchanged — see D-019
 
 Once Shorts and Downloads were merged together, the integrated build was re-checked for the
 one failure neither branch could produce alone — audio bleeding between the two playback
@@ -151,12 +153,10 @@ This list grows as features land; it currently covers what is built.
 - **Shorts restart from the beginning when you swipe back to them.** The pool holds only
   the settled page and its successor, so paging backwards re-prepares the stream at 0
   rather than resuming where you left it. Deliberate — it is what a shorts feed does.
-- **The Player's landscape layout has not been seen on a device.** It previously gave the
-  16:9 stage the full width, so landscape consumed the whole height and pushed the title,
-  Download button, controls and up-next list off-screen with no scroll. That is now a
-  two-pane split keyed on Compact window height (D-019), and the details scroll as one list
-  in both orientations — but it compiles and unit-tests only. Playback itself was always
-  correct and rotation-safe.
+- **Only the Player adapts to window size.** Home, Downloads and Profile keep their
+  single-column layout at every size class, so in landscape a Home card is one very wide row.
+  They stay usable; they are not laid out for the space. Deliberate, recorded as D-019 —
+  breakpoints without a failing case behind them are layout code nobody asked for.
 - The MockEngine fails roughly one request in eight by design, so error states are genuinely
   reachable in the demo. This is deliberate, not a bug.
 - No instrumented tests. Unit tests cover ViewModel intent→state transitions and all display

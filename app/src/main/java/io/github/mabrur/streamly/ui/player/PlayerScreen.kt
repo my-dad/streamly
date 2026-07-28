@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -66,23 +67,33 @@ fun PlayerScreen(
                         .weight(1f)
                         .fillMaxHeight(),
                 )
-                LazyColumn(modifier = Modifier.weight(1f)) {
+                // The host Scaffold deliberately leaves the top inset unconsumed so screens
+                // can paint behind the status bar. The stage wants that; a text pane beside
+                // it does not — without this the title sits under the clock and icons.
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .statusBarsPadding(),
+                ) {
                     details(video, state, onIntent, player)
                 }
             }
         } else {
-            // One list, not a Column wrapping a list: the details scroll with the up-next
-            // items instead of pinning above them.
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                item {
-                    VideoStage(
-                        player = player,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(16f / 9f),
-                    )
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Outside the list on purpose. Scrolling the stage away would leave the
+                // video playing where nobody can see it.
+                VideoStage(
+                    player = player,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(16f / 9f),
+                )
+                // Everything below it is one list, so the title, actions and controls
+                // scroll with the up-next items instead of pinning above them and
+                // squeezing the list into whatever height was left.
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    details(video, state, onIntent, player)
                 }
-                details(video, state, onIntent, player)
             }
         }
     }
