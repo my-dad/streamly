@@ -168,9 +168,10 @@ appearing to work correctly (see D-007).
   device checks in the Status section exist for.
 - `compileSdk` is 37 while `targetSdk` stays 36 — forced by AAR metadata on several AndroidX
   dependencies. See D-011.
-- **A downloaded video is about 127 MB.** Every catalog stream is multi-rendition, so the
-  1.5 Mbps download cap governs all of them; the figure is measured on a device against `du`
-  on the cache, not estimated. See D-026 and D-028.
+- **Download size tracks the video's length** — roughly 10 MB for the one-minute entries,
+  ~127 MB for the ten-minute one (measured against `du` on the cache), and a few hundred for
+  the half-hour ones. Every catalog stream is multi-rendition, so the 1.5 Mbps cap bounds the
+  bitrate; it does not bound the total. See D-026, D-028 and D-033.
 - **The Downloads screen models no error state**, unlike the other four. It observes
   `DownloadManager` on the device rather than fetching, and a failed download belongs on its
   row rather than blanking the screen. The field existed and was unreachable until the
