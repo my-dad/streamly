@@ -679,3 +679,57 @@ content of the stream behind it, and that stream is no longer there.
 **Not verified on a device.** The manifest was fetched and its renditions read directly, but
 no download has been run against the repointed catalog. The download sizes above are
 arithmetic from the advertised bandwidths, not measurements.
+
+---
+
+## D-027 — Entries reserve the bottom bar's height themselves; the Scaffold does not pad them
+
+**Status:** Accepted · 2026-07-29
+
+`NavDisplay` was padded with the `Scaffold`'s `innerPadding`, whose bottom component
+includes the navigation bar's height only while that bar is shown. `Player` hides the bar,
+so the padding changed underneath the entry that was still on screen. Entries now take the
+window inset from the host and add the bar's height per top-level key instead.
+
+This fixes the Home-feed scroll loss that the README carried as a known limitation and
+attributed to the Nav3 `SaveableStateHolder` decorator. That attribution was wrong. The
+decorator saves and restores correctly; it was handed a position that had already been
+corrupted. Measured on the API 33 emulator, viewport height in pixels alongside the
+position:
+
+```
+settle   idx=9 off=425  vp=1787   scrolled to the end of the feed
+settle   idx=9 off=215  vp=1787   tap → Player: bar hides, viewport grows to 1997
+dispose  idx=9 off=215  vp=1787   saved, already 210px wrong
+enter    idx=9 off=215            restored exactly as saved
+```
+
+210px is 80dp at this density — one `NavigationBar`. While the outgoing entry is still
+composed, its viewport grows by that height, and a `LazyColumn` scrolled to its end must
+clamp to the new maximum. The loss is bounded by the bar's height, so a long feed shifts
+and a short one — a filtered category, say — reaches the top, which is what "the feed
+returns to the top" in the original report was.
+
+This also explains why the two fixes recorded as tried and reverted could not have worked:
+hoisting the `LazyListState` and reordering the decorators both address saving and
+restoring, and neither leg was ever broken.
+
+The reservation is **latched**, not tracked: on the frame the bar re-enters composition the
+`Scaffold` measures it at zero, and a tracked value would hand the returning entry a
+full-height viewport for one frame — enough to clamp again. That was observed, not
+predicted; the first attempt at this fix tracked the value and simply moved the clamp from
+the outgoing leg to the incoming one. It is held in `rememberSaveable` so a rotation cannot
+reset it to zero and clamp the restored position the same way.
+
+The bar height is read off the `Scaffold` rather than written as `80.dp`, so a Material
+version that changes the token cannot silently reintroduce this.
+
+**Consequence:** every top-level entry must be passed the host's `topLevelPadding`, and a
+new one that forgets it will sit under the bar. That is visible immediately, unlike the bug
+it replaces. `Player` and `Onboarding` deliberately take no bottom padding beyond the
+window inset.
+
+**Verified on the API 33 emulator, not by unit test.** No unit test reaches this: it needs
+a real measure pass, a real bar, and a real navigation. The reproduction is a scroll to the
+end of Home, a tap into Player, and Back — with `firstVisibleItemScrollOffset` compared
+before and after.
