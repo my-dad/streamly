@@ -20,9 +20,8 @@ compiles and its unit tests pass.
       proceeding, and a relaunch after signing in landing straight on Home
 - [x] **Home feed with categories, loading/empty/error states** — verified on an emulator:
       renders with real formatted metadata, category chips filter, the error state shows
-      "No connection" with a working Retry, and rotation preserves scroll position exactly.
-      One gap, listed under Known limitations: scroll is *not* preserved when returning
-      from the Player
+      "No connection" with a working Retry, and scroll position survives both rotation and
+      a round trip into the Player
 - [x] **Profile + sign-out confirmation** — verified on an emulator: avatar, name and email
       render, Cancel dismisses the dialog without signing out, and confirming clears the
       session and lands on Onboarding with the back stack reset
@@ -31,15 +30,12 @@ compiles and its unit tests pass.
       `dumpsys audio`) including under fast swiping, backgrounding stops audio and returning
       resumes it, leaving the tab releases the pool, and rotation preserves the settled page
 - [x] **Downloads — real progress, offline playback, remove** — verified on an API 33
-      emulator and re-verified end to end on a physical Pixel 6 Pro (Android 17 / API 37),
-      which is the first device to actually enforce the download service's
-      `foregroundServiceType`; on that run progress climbed monotonically on disk to 127.5 MB,
-      the item played offline with Wi-Fi disabled inside airplane mode, and Remove returned
-      the cache to 39 KB. Original emulator run:
-      download reaches "Ready to play", progress climbs monotonically and matches the cache
-      growing on disk, the completed item **plays in airplane mode** (confirmed by
-      screenshot, not just by a rising position), Remove drops storage to zero, and a
-      force-stop and relaunch while still offline leaves the download listed and playable
+      emulator and again end to end on a physical Pixel 6 Pro (Android 17 / API 37), the
+      first device that actually enforces the download service's `foregroundServiceType`:
+      the download reaches "Ready to play", progress climbs monotonically and matches the
+      cache growing on disk, the completed item **plays offline** (confirmed by screenshot,
+      not just by a rising position), a force-stop and relaunch while still offline leaves
+      it listed and playable, and Remove drops storage back to zero
 - [x] **Adaptive layout via `WindowSizeClass`** — verified on an emulator: at Compact window
       height (a phone in landscape) the Player goes fullscreen, system bars hidden, transport
       controls overlaid; rotating back or leaving the screen restores the bars, and rotating
@@ -55,7 +51,7 @@ ever in `started` state, and leaving either surface drops it to zero.
 The device checks that gate these are listed per-feature in the corresponding plan under
 `docs/superpowers/plans/`. They cover rotation safety, player release and leak checks, audio
 bleed, and offline playback — none of which a unit test can establish. `docs/streamly-build-plan.md`
-carries the phase-by-phase state, and its Status section lists the three plan tasks that are
+carries the phase-by-phase state, and its Status section lists the two plan tasks that are
 still open and why.
 
 ## Architecture
@@ -112,8 +108,8 @@ The debug APK is not committed — building it is one command and the artefact i
 
     ./gradlew assembleDebug        # -> app/build/outputs/apk/debug/app-debug.apk
 
-`minSdk` is 25. The build has been exercised on an API 33 emulator; see Known limitations
-for the one behaviour that only appears from API 34 and therefore could not be confirmed.
+`minSdk` is 25. The build has been exercised on an API 33 emulator and on a physical
+Pixel 6 Pro running API 37.
 
 ## AI workflow
 
@@ -136,8 +132,6 @@ appearing to work correctly (see D-007).
 
 ## Shortcuts taken, and why
 
-This list grows as features land; it currently covers what is built.
-
 - **Auth is mocked.** "Continue with Google" writes a session directly. The PRD permits this;
   the session *pipeline* — DataStore persistence, gated start destination, sign-out clearing
   — is real.
@@ -148,8 +142,8 @@ This list grows as features land; it currently covers what is built.
   reaction backend to talk to, so the buttons toggle in the ViewModel and reset when the
   screen is popped. The PRD permits the stub; pretending otherwise would be worse.
 - **The visual design was applied last, as a presentation-layer pass** over working screens,
-  and never changed behaviour. Where `streamly.dc.html` and PRD §9 disagreed, the PRD won all
-  three times — see D-017.
+  and never changed behaviour. Where `streamly.dc.html` and PRD §9 disagreed, the PRD won
+  every time — see D-017 and D-024.
 - **`VideoCard` takes formatted primitives, not a model.** It lives in `:core:designsystem`,
   which cannot depend on `:app`, so passing pre-formatted strings keeps the component
   reusable and the module graph acyclic.
@@ -175,24 +169,11 @@ This list grows as features land; it currently covers what is built.
 - No instrumented tests. Unit tests cover ViewModel intent→state transitions and all display
   formatters; the rendering, lifecycle, and playback behaviour they cannot reach is what the
   device checks in the Status section exist for.
-- ~~**Returning from the Player resets the Home feed's scroll position.**~~ **Fixed**, and the
-  earlier diagnosis here was wrong. It was never the Nav3 `SaveableStateHolder` decorator:
-  that saves and restores faithfully, but was handed a position corrupted before the save.
-  Hiding the bottom bar for the Player grew the outgoing entry's viewport by the bar's
-  height while it was still composed, and a `LazyColumn` scrolled to its end clamps. Entries
-  now reserve that height themselves. See D-027 for the measurements.
 - `compileSdk` is 37 while `targetSdk` stays 36 — forced by AAR metadata on several AndroidX
   dependencies. See D-011.
-- **Every catalog stream is multi-rendition, so the download bitrate cap governs all of
-  them.** Eight entries used to point at a single-rendition source that no track selection
-  could shrink, and downloaded at roughly half a gigabyte each; they were repointed (D-026).
-  Measured on a device since: **127.5 MB** for a repointed entry, confirmed against `du` on
-  the cache. That is about double what D-026 predicted from the advertised bitrates, and in
-  line with the entries that were always multi-rendition — see D-028.
-- ~~**The download foreground-service manifest cannot be verified here.**~~ **Closed.** The
-  flow now ran on a physical Pixel 6 Pro on Android 17 / API 37, where `foregroundServiceType`
-  and `FOREGROUND_SERVICE_DATA_SYNC` are enforced: the service comes up with
-  `types=0x00000001` (`DATA_SYNC`) and no exception. See D-028.
+- **A downloaded video is about 127 MB.** Every catalog stream is multi-rendition, so the
+  1.5 Mbps download cap governs all of them; the figure is measured on a device against `du`
+  on the cache, not estimated. See D-026 and D-028.
 - **The Downloads screen models no error state**, unlike the other four. It observes
   `DownloadManager` on the device rather than fetching, and a failed download belongs on its
   row rather than blanking the screen. The field existed and was unreachable until the
