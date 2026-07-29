@@ -106,7 +106,14 @@ private fun DotRail(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier,
+        // Same reasoning as the caption's gradient below: white on video is unreadable
+        // over a bright frame, and two of the catalog's shorts are a white title card and
+        // a pale sky. A capsule rather than a gradient because the rail is a narrow strip
+        // at the centre of the screen, where a full-width scrim would dim the video.
+        modifier = modifier
+            .clip(CircleShape)
+            .background(Color.Black.copy(alpha = 0.25f))
+            .padding(vertical = 8.dp, horizontal = 5.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         repeat(count) { index ->
