@@ -815,3 +815,38 @@ before. It wraps rather than fills, so a child that calls `fillMaxSize` still fi
 constraints it is given, which is what all five screens do. D-027's scroll fix was re-checked
 on the device afterwards and still holds — item bounds are identical before and after a
 Home → Player → Back round trip.
+
+---
+
+## D-030 — The Shorts dot rail is built; the like/share rail moves to the bottom
+
+**Status:** Accepted · 2026-07-29
+
+The design's page indicator — a column of 7dp dots at the right edge, vertically centred,
+the settled one white and the rest white at 35% — now exists. It was the last piece of
+`streamly.dc.html` never implemented, deferred during the design pass because it "sits
+exactly where the like/share rail sits".
+
+That collision was self-inflicted. The design puts the like/share rail at the **bottom**
+right (`right:16px;bottom:76px`) and the dots at the centre; the app had centred the rail,
+taking the dots' place. The rail is now bottom-aligned as the design has it, which both
+clears the dots and matches the caption block beside it — that block already reserved
+`end = 72.dp` for a rail at the bottom, so the app's own layout had been carrying the
+design's intent all along.
+
+The rail lives outside the pager, as a sibling of `VerticalPager` rather than inside
+`ShortPage`. One indicator for the feed, not a copy riding on every page, and it reads
+`settledIndex` — the same value that gates playback, so the dot cannot disagree with what
+is playing.
+
+**It is read-only**, like the `PlayingBadge` above it. The design makes each dot tappable;
+a 7dp target is a quarter of the minimum touch target, and enlarging the touch area to
+48dp would put six invisible 48dp targets down the right edge, overlapping the rail. The
+pager is driven by the swipe the dots describe.
+
+**Known weakness, not fixed:** the dots are white on video with no scrim, exactly as the
+design specifies, so over a pale frame the inactive ones are close to invisible — the
+catalog's first two shorts are a white title card and a pale sky. The caption below them
+has a gradient scrim for precisely this reason. Adding one here was not done because it
+would deviate from a design that specifies these colours on the assumption of dark video.
+Worth revisiting with a real shorts catalog.
