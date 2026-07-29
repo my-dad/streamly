@@ -3,6 +3,7 @@ package io.github.mabrur.streamly.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
@@ -13,7 +14,11 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -130,9 +135,37 @@ private fun StreamlyNavHost(
             }
         },
     ) { innerPadding ->
+        // The bar's height must never reach an entry through the Scaffold's padding.
+        // Pushing Player hides the bar while the outgoing entry is still composed, so
+        // that entry's viewport would grow by one bar height mid-transition — and a
+        // LazyColumn scrolled to its end clamps to the new maximum, permanently losing
+        // up to a bar height of scroll position. The saveable decorator then stores and
+        // restores that already-wrong offset faithfully. Measured, see D-027.
+        //
+        // So the entries are padded by what their own key implies instead: the window
+        // inset here, which does not move, and the bar height added per top-level entry
+        // below. Reading it off the Scaffold keeps it a measurement rather than a
+        // hardcoded 80.dp that a Material version could silently invalidate.
+        val insetBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        // Latched, not tracked. On the frame the bar re-enters composition the Scaffold
+        // measures it at zero height, and tracking that would hand the returning entry a
+        // full-height viewport for exactly one frame — which is all a LazyColumn needs to
+        // clamp. Keeping the last non-zero measurement means the reservation only ever
+        // appears, never blinks. rememberSaveable so a rotation cannot reset it to zero
+        // either, which would clamp the restored position the same way.
+        var barHeightDp by rememberSaveable { mutableFloatStateOf(0f) }
+        SideEffect {
+            val measured = (innerPadding.calculateBottomPadding() - insetBottom).value
+            if (measured > 0f) barHeightDp = measured
+        }
+        val topLevelPadding = Modifier.padding(bottom = barHeightDp.dp)
+
         NavDisplay(
             backStack = backStack,
-            modifier = Modifier.padding(innerPadding),
+            modifier = Modifier.padding(
+                top = innerPadding.calculateTopPadding(),
+                bottom = insetBottom,
+            ),
             onBack = { backStack.removeLastOrNull() },
             // REQUIRED — NavDisplay's default decorators do NOT include ViewModel
             // scoping, and navigation3-ui does not even depend on the artifact that
@@ -147,6 +180,7 @@ private fun StreamlyNavHost(
                 entry<StreamlyKey.Onboarding> { OnboardingRoute() }
                 entry<StreamlyKey.Home> {
                     HomeRoute(
+                        modifier = topLevelPadding,
                         onOpenPlayer = { videoId ->
                             backStack.add(StreamlyKey.Player(videoId))
                         },
@@ -158,13 +192,14 @@ private fun StreamlyNavHost(
                         },
                     )
                 }
-                entry<StreamlyKey.Shorts> { ShortsRoute() }
+                entry<StreamlyKey.Shorts> { ShortsRoute(modifier = topLevelPadding) }
                 entry<StreamlyKey.Downloads> {
                     DownloadsRoute(
+                        modifier = topLevelPadding,
                         onOpenPlayer = { videoId -> backStack.add(StreamlyKey.Player(videoId)) },
                     )
                 }
-                entry<StreamlyKey.Profile> { ProfileRoute() }
+                entry<StreamlyKey.Profile> { ProfileRoute(modifier = topLevelPadding) }
                 entry<StreamlyKey.Player> { key ->
                     PlayerRoute(
                         videoId = key.videoId,

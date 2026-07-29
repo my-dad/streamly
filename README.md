@@ -170,13 +170,12 @@ This list grows as features land; it currently covers what is built.
 - No instrumented tests. Unit tests cover ViewModel intent→state transitions and all display
   formatters; the rendering, lifecycle, and playback behaviour they cannot reach is what the
   device checks in the Status section exist for.
-- **Returning from the Player resets the Home feed's scroll position.** The feed itself is
-  not reloaded — no refetch, no loading flash, the data is retained — but the list returns to
-  the top. Rotation preserves the same scroll perfectly, which isolates it to the Nav3
-  `SaveableStateHolder` entry decorator not restoring on pop rather than to anything in the
-  screen: `rememberSaveable` demonstrably works here. Two fixes were tried and measured
-  (hoisting the `LazyListState` above `ContentState`, and reversing the decorator order);
-  neither changed the behaviour, so both were reverted rather than left as unmotivated churn.
+- ~~**Returning from the Player resets the Home feed's scroll position.**~~ **Fixed**, and the
+  earlier diagnosis here was wrong. It was never the Nav3 `SaveableStateHolder` decorator:
+  that saves and restores faithfully, but was handed a position corrupted before the save.
+  Hiding the bottom bar for the Player grew the outgoing entry's viewport by the bar's
+  height while it was still composed, and a `LazyColumn` scrolled to its end clamps. Entries
+  now reserve that height themselves. See D-027 for the measurements.
 - `compileSdk` is 37 while `targetSdk` stays 36 — forced by AAR metadata on several AndroidX
   dependencies. See D-011.
 - **Every catalog stream is multi-rendition, so the download bitrate cap governs all of
