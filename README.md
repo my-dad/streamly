@@ -88,28 +88,51 @@ Decisions and their rationale are recorded in [`docs/decisions.md`](docs/decisio
 append-only. Several of them exist because a stated constraint turned out to be unworkable
 and the workaround is worth explaining.
 
-## Running it
+## Building it
 
-    ./gradlew assembleDebug                        # build
-    ./gradlew testDebugUnitTest                    # unit tests, all Android modules
-    ./gradlew :domain:test                         # domain tests (pure JVM, no debug variant)
-    ./gradlew :app:compileDebugKotlin              # fast compile check while iterating
+### Requirements
+
+- **JDK 17 or newer.** AGP 9.3.1 requires it; built here on OpenJDK 17.0.19.
+- **Android SDK with platform API 37**, which `compileSdk` targets. `minSdk` is 25 and
+  `targetSdk` is 36 — see Known limitations for why those three differ.
+- **No Gradle installation** — the wrapper pins Gradle 9.5.0 and downloads it on first run.
+- **No API keys, accounts, or configuration.** The catalog is bundled at
+  `data/src/main/assets/catalog.json` and served in-process by Ktor's MockEngine.
+
+### Build
+
+    git clone <repo-url> && cd streamly
+    ./gradlew assembleDebug          # -> app/build/outputs/apk/debug/app-debug.apk (~19 MB)
+
+Gradle finds the SDK through `$ANDROID_HOME`, or through a `local.properties` file in the
+project root holding `sdk.dir=/path/to/Android/sdk`. That file is gitignored, so a fresh
+clone has neither until you set one — this is the only setup step, and the failure mode if
+you skip it ("SDK location not found") names the fix.
+
+Android Studio needs no extra steps: open the project directory and it configures from the
+same Gradle files.
+
+### Install and run
+
+    ./gradlew installDebug           # build + install on the connected device
+    adb shell am start -n io.github.mabrur.streamly/.MainActivity
+
+With more than one device attached, `adb` needs `-s <serial>` (`adb devices` lists them).
+The first run needs a network — the HLS media streams from public test CDNs, even though the
+catalog itself is local.
+
+### Tests
+
+    ./gradlew testDebugUnitTest      # unit tests, all Android modules
+    ./gradlew :domain:test           # domain tests (pure JVM, so no debug variant exists)
+    ./gradlew :app:compileDebugKotlin  # fast compile check while iterating
 
 `:app:testDebugUnitTest` on its own silently skips `:data` and `:core:*`. Use the
-unqualified `testDebugUnitTest` to run them all.
+unqualified `testDebugUnitTest` to run them all. There is no lint or formatter configured,
+and no instrumented tests.
 
-No API keys or configuration are required — the catalog is bundled at
-`data/src/main/assets/catalog.json` and served by Ktor's MockEngine. HLS media streams from
-public test CDNs, so the first run needs a network.
-
-There is no lint or formatter configured, and no instrumented tests.
-
-The debug APK is not committed — building it is one command and the artefact is ~19 MB:
-
-    ./gradlew assembleDebug        # -> app/build/outputs/apk/debug/app-debug.apk
-
-`minSdk` is 25. The build has been exercised on an API 33 emulator and on a physical
-Pixel 6 Pro running API 37.
+The debug APK is not committed — building it is one command and the artefact is ~19 MB. The
+build has been exercised on an API 33 emulator and on a physical Pixel 6 Pro running API 37.
 
 ## AI workflow
 
