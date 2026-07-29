@@ -959,3 +959,49 @@ three seconds of playback; restored by a tap; still up eight seconds after pausi
 follows, the system back gesture is unaffected, and one tap brings it back. The measurement
 in D-023 — the video lingering after a pop — is untouched, since nothing here changes the
 surface.
+
+---
+
+## D-033 — Six streams across the catalog; every card no longer plays the same clip
+
+**Status:** Accepted · 2026-07-29 · Reverses the variety judgment in D-026
+
+D-026 repointed eight entries onto `x36xhzz` and judged the resulting repetition acceptable:
+"which clip plays behind a card is cosmetic — the thumbnails are seeded per id and differ".
+That was wrong. It left **sixteen of eighteen entries playing one clip**, so opening two
+different videos showed the same footage. The thumbnails differing is exactly what makes it
+worse: the card promises one thing and the player shows another, which reads as a broken
+media pipeline rather than a thin catalog.
+
+The catalog now serves six streams, verified individually:
+
+| Source | Length | Content |
+|---|---|---|
+| `test-streams.mux.dev/x36xhzz` | 9:56 | Big Buck Bunny |
+| Apple `img_bipbop_adv_example_fmp4` | 30:00 | BipBop |
+| `shaka-demo-assets/bbb-dark-truths-hls` | 6:12 | Big Buck Bunny, different cut |
+| `shaka-demo-assets/angel-one-hls` | 1:00 | Angel One |
+| `test-streams.mux.dev/pts_shift` | 2:45 | turntable |
+| `cdn.jwplayer.com/manifests/pZxWPRg4` | 1:11 | city waterfront |
+
+Every one is multi-rendition with a variant under the D-010 cap, so nothing here reopens the
+half-gigabyte problem D-026 fixed. Each was checked three ways before adoption: the master
+manifest, the lowest variant playlist, and a range request against its first segment — then
+played on the emulator and screenshotted, because a manifest being alive says nothing about
+what is in the picture.
+
+**That last check earned its keep.** `demo.unified-streaming.com`'s Tears of Steel asset
+passes every mechanical test and plays a **diagnostic card** — "2200k 1680x750 avc1" burnt
+into the frame under a vendor watermark. It was adopted, seen on the device, and dropped. A
+card titled "Tears of Steel — Full Short Film" playing a bitrate test pattern is worse than
+the repetition being fixed. `v02` keeps the title D-026 gave it.
+
+**`durationMs` is now the stream's real length**, where before it was invented — a card
+reading `1:30:00` over a ten-minute stream is the same class of defect, visible on the feed
+without opening anything. "Synthwave Drive — One Hour Mix" was renamed for the same reason.
+
+**Consequence:** download size now tracks length rather than being uniform. The half-hour
+BipBop entries are a few hundred megabytes and slow to fetch; the one-minute ones are ~10 MB.
+Anyone recording a demo should pick a short entry. `CatalogAssetTest` gained a case pinning
+distinct-stream count and forbidding adjacent duplicates, since every other test in the file
+passed happily while the feed was one clip wearing twelve titles.

@@ -22,7 +22,11 @@ class CatalogAssetTest {
      */
     private val vettedStreams = setOf(
         "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+        "https://test-streams.mux.dev/pts_shift/master.m3u8",
         "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8",
+        "https://cdn.jwplayer.com/manifests/pZxWPRg4.m3u8",
+        "https://storage.googleapis.com/shaka-demo-assets/bbb-dark-truths-hls/hls.m3u8",
+        "https://storage.googleapis.com/shaka-demo-assets/angel-one-hls/hls.m3u8",
     )
 
     private val catalog =
@@ -32,6 +36,25 @@ class CatalogAssetTest {
     fun `every stream url is a vetted multi-rendition master`() {
         val urls = catalog.videos.map { it.hlsUrl } + catalog.shorts.map { it.hlsUrl }
         assertEquals(emptySet<String>(), urls.toSet() - vettedStreams)
+    }
+
+    /**
+     * Sixteen of the eighteen entries once pointed at one stream, so every card in the feed
+     * played the same clip — invisible to every other test here and obvious the moment the
+     * app is opened. See D-033.
+     */
+    @Test
+    fun `the feed is not one clip wearing twelve titles`() {
+        val videoStreams = catalog.videos.map { it.hlsUrl }
+        assertTrue(
+            "videos share too few distinct streams: ${videoStreams.toSet().size}",
+            videoStreams.toSet().size >= 4,
+        )
+        assertEquals(
+            "adjacent cards must not play the same stream",
+            0,
+            videoStreams.zipWithNext().count { (a, b) -> a == b },
+        )
     }
 
     @Test
