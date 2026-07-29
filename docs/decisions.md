@@ -850,3 +850,29 @@ catalog's first two shorts are a white title card and a pale sky. The caption be
 has a gradient scrim for precisely this reason. Adding one here was not done because it
 would deviate from a design that specifies these colours on the assumption of dark video.
 Worth revisiting with a real shorts catalog.
+
+---
+
+## D-031 — The dot rail gets a scrim after all
+
+**Status:** Accepted · 2026-07-29
+
+D-030 shipped the dot rail without a scrim and recorded that as a known weakness: white
+dots on video, per the design, are close to invisible over a pale frame. That was the wrong
+call and it is now fixed — the rail sits on a capsule of black at 25%.
+
+The reasoning that produced the weakness was "the design specifies these colours". But the
+design specifies them for a mock whose slides are a flat `#0d0e24`, and the caption
+directly below the dots already deviates from the design for exactly this reason, with a
+gradient scrim added during the design pass. Keeping one element faithful while its
+neighbour is not is the inconsistency, not the fix.
+
+A capsule rather than a gradient: the rail is a narrow strip at the vertical centre, where
+a full-width scrim of the kind the caption uses would dim the video across its middle. The
+capsule is bounded to the control it makes legible.
+
+Verified on a Pixel 6 Pro against the catalog's palest short — a white-to-pink sky — where
+all six dots read clearly, including the five inactive ones at 35% white.
+
+D-030 stands otherwise: the rail is built, read-only, outside the pager, keyed on
+`settledIndex`. Only its final paragraph is overtaken by this entry.

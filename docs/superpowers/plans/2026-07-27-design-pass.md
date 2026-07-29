@@ -834,7 +834,7 @@ structural constraint.
   - [x] **Dot rail — built and verified 2026-07-29** on a Pixel 6 Pro. The collision noted
         here was self-inflicted: the design puts the like/share rail at the bottom, not the
         centre. Rail moved, dots added, both verified tracking `settledIndex` across a swipe.
-        See D-030, including the legibility caveat over pale video.
+        See D-030, and D-031 for the scrim that made the dots legible over pale video.
   - [ ] **Not verified — notched device.** The emulator has no cutout. `statusBarsPadding()`
         is inset-driven rather than a fixed value, so it should follow a cutout, but that is
         reasoning, not observation.
