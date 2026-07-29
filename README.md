@@ -30,7 +30,12 @@ compiles and its unit tests pass.
       and plays, exactly one `AudioTrack` is ever in `started` state (measured via
       `dumpsys audio`) including under fast swiping, backgrounding stops audio and returning
       resumes it, leaving the tab releases the pool, and rotation preserves the settled page
-- [x] **Downloads — real progress, offline playback, remove** — verified on an emulator:
+- [x] **Downloads — real progress, offline playback, remove** — verified on an API 33
+      emulator and re-verified end to end on a physical Pixel 6 Pro (Android 17 / API 37),
+      which is the first device to actually enforce the download service's
+      `foregroundServiceType`; on that run progress climbed monotonically on disk to 127.5 MB,
+      the item played offline with Wi-Fi disabled inside airplane mode, and Remove returned
+      the cache to 39 KB. Original emulator run:
       download reaches "Ready to play", progress climbs monotonically and matches the cache
       growing on disk, the completed item **plays in airplane mode** (confirmed by
       screenshot, not just by a rising position), Remove drops storage to zero, and a
@@ -181,12 +186,13 @@ This list grows as features land; it currently covers what is built.
 - **Every catalog stream is multi-rendition, so the download bitrate cap governs all of
   them.** Eight entries used to point at a single-rendition source that no track selection
   could shrink, and downloaded at roughly half a gigabyte each; they were repointed (D-026).
-  The download sizes that follow from that are arithmetic off the advertised bandwidths — no
-  download has been run against the repointed catalog on a device.
-- **The download foreground-service manifest cannot be verified here.** `foregroundServiceType`
-  and `FOREGROUND_SERVICE_DATA_SYNC` are only enforced from API 34, and the emulator used
-  throughout is API 33. Both are declared and confirmed present in the merged manifest, but
-  no device that enforces them has run this build.
+  Measured on a device since: **127.5 MB** for a repointed entry, confirmed against `du` on
+  the cache. That is about double what D-026 predicted from the advertised bitrates, and in
+  line with the entries that were always multi-rendition — see D-028.
+- ~~**The download foreground-service manifest cannot be verified here.**~~ **Closed.** The
+  flow now ran on a physical Pixel 6 Pro on Android 17 / API 37, where `foregroundServiceType`
+  and `FOREGROUND_SERVICE_DATA_SYNC` are enforced: the service comes up with
+  `types=0x00000001` (`DATA_SYNC`) and no exception. See D-028.
 - **The Downloads screen models no error state**, unlike the other four. It observes
   `DownloadManager` on the device rather than fetching, and a failed download belongs on its
   row rather than blanking the screen. The field existed and was unreachable until the

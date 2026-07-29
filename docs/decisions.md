@@ -733,3 +733,48 @@ window inset.
 a real measure pass, a real bar, and a real navigation. The reproduction is a scroll to the
 end of Home, a tap into Player, and Back — with `firstVisibleItemScrollOffset` compared
 before and after.
+
+---
+
+## D-028 — The download flow, measured on an API 37 device; D-026's size arithmetic was wrong
+
+**Status:** Accepted · 2026-07-29
+
+The full download flow ran on a physical Pixel 6 Pro, Android 17 / API 37, against the
+catalog as repointed in D-026. Two things this closes, and one it corrects.
+
+**The foreground service is now verified where it is actually enforced.** `dumpsys activity
+services` during a download reports:
+
+```
+isForeground=true foregroundId=1 types=0x00000001
+```
+
+`0x00000001` is `FOREGROUND_SERVICE_TYPE_DATA_SYNC`. No
+`MissingForegroundServiceTypeException`, no `SecurityException`, no crash. The manifest
+declarations from task 6.3 and the runtime `POST_NOTIFICATIONS` request from 6.4 were only
+ever exercised on an API 33 emulator, where neither is enforced; the README carried that as
+a known limitation. It no longer applies.
+
+**D-026's predicted download size was wrong, and it was arithmetic rather than measurement —
+it said so, which is the only reason this is a correction and not a surprise.** It predicted
+roughly 62 MB from the 836 kbps rendition. Measured: **127.5 MB**, reported by the UI and
+confirmed on disk at 131003 KB via `du` on the app's `files/media_downloads`. So the real
+figure is about double the estimate, and matches what the README already recorded for the
+ten entries that were always multi-rendition ("roughly 130 MB"). Which rendition the cap
+actually lands on was not determined; only the resulting size was measured.
+
+D-026's *conclusion* holds and is what mattered: these eight entries no longer download at
+roughly half a gigabyte, and the cap now governs every entry in the catalog. Per the
+append-only rule D-026 is left exactly as written, wrong number included.
+
+**The rest of the flow, all on the same device:** progress climbed monotonically on disk
+(68 → 76 → 81 → 91 → 98 → 106 → 128 MB across a 60 s poll) rather than by any UI-side
+animation; the completed item survived a force-stop and relaunch with **no network at all**
+and stayed listed; it **played offline** with the position advancing 0:07 → 0:16 and the
+decoded frame visibly changing, with no `HttpDataSource` or player error in logcat; and
+Remove dropped the row, the header to `0 B used`, and the cache from 131003 KB to 39 KB.
+
+Offline was established by disabling Wi-Fi on a device already in airplane mode —
+`Active default network: none`, `ping` unreachable — rather than by trusting the airplane
+toggle alone.
