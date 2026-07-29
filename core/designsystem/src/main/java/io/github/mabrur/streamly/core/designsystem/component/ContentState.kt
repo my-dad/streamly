@@ -67,7 +67,11 @@ fun <T> ContentState(
             onAction = null,
         )
 
-        else -> content(data)
+        // The modifier reaches the content too, not just the three placeholder branches.
+        // Dropping it here silently discarded whatever the caller sized or padded the
+        // screen with the moment real data arrived — which hid Shorts' caption behind the
+        // bottom bar as soon as that padding started arriving this way. See D-029.
+        else -> Box(modifier) { content(data) }
     }
 }
 
