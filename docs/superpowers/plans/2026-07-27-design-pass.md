@@ -897,7 +897,12 @@ git commit -m "docs(decisions): record D-010 design pass and PRD precedence" \
 - [x] Ship-plan audit re-run 2026-07-28 — 10 of 11 clean as written; check 8 flags `androidx.fragment` arriving transitively via `hilt-android`, with no `Fragment` in any source file. Noted in the build plan's Status section rather than papered over
 - [x] `docs/decisions.md` contains D-001 … D-024 (D-019 superseded by D-020)
 - [x] README's "shortcuts" section notes that Subscribe and Like are local, non-persisted UI state
-- [ ] Screens compared against the design on a device — **still open.** The Player was reworked on a device across D-019…D-024, but the other six screens have not been held up against `streamly.dc.html` on hardware
+- [x] Screens compared against the design on a device — **done 2026-07-29** on a Pixel 6 Pro
+  (Android 17 / API 37). All six non-Player screens held up against `streamly.dc.html`. Every
+  difference found was already a recorded decision — the Home app bar's single circle (D-024),
+  Downloads' remove control (D-017 #2), Onboarding's email field (D-017 #3) — except one real
+  defect, a regression from D-027 that hid Shorts' caption behind the tab bar. Fixed and
+  recorded as D-029. The dot rail on Shorts remains unbuilt, as noted in Task 5
 
 **This is the last plan.** If the clock runs out before it, the app still satisfies every
 functional requirement in the PRD — which is the point of sequencing it here.

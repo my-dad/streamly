@@ -778,3 +778,40 @@ Remove dropped the row, the header to `0 B used`, and the cache from 131003 KB t
 Offline was established by disabling Wi-Fi on a device already in airplane mode —
 `Active default network: none`, `ping` unreachable — rather than by trusting the airplane
 toggle alone.
+
+---
+
+## D-029 — `ContentState` applies its `modifier` to content, not only to the placeholders
+
+**Status:** Accepted · 2026-07-29
+
+`ContentState` honoured its `modifier` in the loading, empty and error branches and dropped
+it in `else -> content(data)`. The content branch now wraps in a `Box(modifier)`.
+
+**This was a live regression, introduced by D-027 four commits earlier.** That change moved
+the bottom bar's height off the `Scaffold` and onto each top-level entry's modifier. Home and
+Downloads apply that modifier to their own root and were fine. Shorts and Profile pass it
+straight into `ContentState`, which silently discarded it the moment real data arrived — so
+their content ran the full height of the window, underneath the tab bar. On Shorts that hid
+the caption block entirely, the one piece of overlay chrome that sits bottom-aligned.
+
+Found by comparing the six non-Player screens against `streamly.dc.html` on a Pixel 6 Pro,
+which is exactly the check that was still open. It was invisible in a screenshot — the
+caption is white text and the short playing behind it was a pale sky — so it was confirmed
+in the accessibility tree instead, and then bisected against a build of the pre-D-027 commit:
+
+```
+pre-D-027   '@wanderlens' [48,2652][317,2704]   '60 seconds of pure ridgeline' [48,2716][553,2763]
+post-D-027  (absent)
+fixed       '@wanderlens' [48,2652][317,2704]   '60 seconds of pure ridgeline' [48,2716][553,2763]
+```
+
+Fixing the caller instead would have left the trap for the next screen that routes a modifier
+through `ContentState`, and there are five of them. A component that accepts a `modifier` and
+applies it to three of four branches is the defect.
+
+**Consequence:** the content branch now has a `Box` in the layout tree that was not there
+before. It wraps rather than fills, so a child that calls `fillMaxSize` still fills the
+constraints it is given, which is what all five screens do. D-027's scroll fix was re-checked
+on the device afterwards and still holds — item bounds are identical before and after a
+Home → Player → Back round trip.
