@@ -4,6 +4,47 @@ Append-only. Never edit or delete an existing entry, even one that is now wrong.
 To reverse a decision, add a new entry and set the old one's status to
 `Superseded by D-0NN` — that status line is the only edit ever permitted.
 
+## Index
+
+Entries are numbered in the order they were written, which is not the order they appear —
+D-009 and D-010 were claimed by plans that executed later, so they sit between D-014 and
+D-015. Search by id. A status line naming another entry is the only signal that a record
+has been overtaken; the body is never corrected in place.
+
+| ID | Decision | Status |
+|---|---|---|
+| D-001 | Split into five Gradle modules | Accepted · 2026-07-27 |
+| D-002 | Compose-native playback surfaces | Accepted · 2026-07-27 |
+| D-003 | One shared sealed `AppError` | Accepted · 2026-07-27 |
+| D-004 | Sign-out is a dialog, not a navigation route | Accepted · 2026-07-27 |
+| D-005 | Bottom-bar navigation | Accepted · 2026-07-27 |
+| D-006 | `AppError` extends `Exception`; repositories return `Result<T>` | Accepted · 2026-07-27 |
+| D-007 | `NavDisplay` entry decorators are passed explicitly | Accepted · 2026-07-27 |
+| D-008 | Transport controls bypass the MVI intent channel | Accepted · 2026-07-27 |
+| D-009 | `DownloadRepositoryImpl` lives in `:core:player`, not `:data` | Accepted · 2026-07-27 |
+| D-010 | Downloads cap video bitrate; one catalog source stays large regardless | Accepted · 2026-07-27 · Consequence resolved by D-026 |
+| D-011 | `compileSdk` is 37; Coil pinned to 3.4.0 | Accepted · 2026-07-27 |
+| D-012 | `hilt-lifecycle-viewmodel-compose` replaces `hilt-navigation-compose` | Accepted · 2026-07-27 |
+| D-013 | Shorts has no `Effect` type | Accepted · 2026-07-27 |
+| D-014 | Shorts renders through a `TextureView`; the Player screen keeps its `SurfaceView` | Accepted · 2026-07-27 · Player surface superseded by D-023 |
+| D-015 | Downloaded videos play from their `DownloadRequest`, so `PlayerHolder` takes a video id | Accepted · 2026-07-27 |
+| D-016 | Two Media3 behaviours the plans assumed wrongly | Accepted · 2026-07-27 |
+| D-017 | Design pass applied last; PRD outranks the design on all three conflicts | Accepted · 2026-07-27 |
+| D-018 | Toasts travel by `Effect`, not in `UiState` | Accepted · 2026-07-27 |
+| D-019 | Adaptive layout keys on window *height*, and only the Player screen gets it | Superseded by D-020 · 2026-07-28 |
+| D-020 | Landscape is fullscreen playback, not a two-pane layout | Accepted · 2026-07-28 · Supersedes D-019 |
+| D-021 | Player controls live on the video, per the design | Accepted · 2026-07-28 |
+| D-022 | A fullscreen button that rotates the device, and a hand-built seek bar | Accepted · 2026-07-28 |
+| D-023 | The Player renders into a `TextureView`, like Shorts | Accepted · 2026-07-28 |
+| D-024 | The Home app bar's decorative second circle is dropped | Accepted · 2026-07-28 |
+| D-025 | `DownloadsUiState` carries no `error`, and `ContentState`'s is optional | Accepted · 2026-07-28 |
+| D-026 | The catalog drops `tos_ismc`; every stream is now multi-rendition | Accepted · 2026-07-29 · Size corrected by D-028 |
+| D-027 | Entries reserve the bottom bar's height themselves; the Scaffold does not pad them | Accepted · 2026-07-29 · Caused the regression fixed by D-029 |
+| D-028 | The download flow, measured on an API 37 device; D-026's size arithmetic was wrong | Accepted · 2026-07-29 |
+| D-029 | `ContentState` applies its `modifier` to content, not only to the placeholders | Accepted · 2026-07-29 |
+| D-030 | The Shorts dot rail is built; the like/share rail moves to the bottom | Accepted · 2026-07-29 · Final paragraph superseded by D-031 |
+| D-031 | The dot rail gets a scrim after all | Accepted · 2026-07-29 |
+
 ---
 
 ## D-001 — Split into five Gradle modules
@@ -228,7 +269,7 @@ the full contract and this is the one deliberate exception.
 
 ## D-014 — Shorts renders through a `TextureView`; the Player screen keeps its `SurfaceView`
 
-**Status:** Accepted · 2026-07-27
+**Status:** Accepted · 2026-07-27 · Player surface superseded by D-023
 
 `PlayerScreen` passes `SURFACE_TYPE_SURFACE_VIEW` to `PlayerSurface`. `ShortsScreen` passes
 `SURFACE_TYPE_TEXTURE_VIEW`. The two playback surfaces deliberately differ.
@@ -253,6 +294,9 @@ expected to do.
 **Consequence:** any future full-bleed playback surface inside a scrolling or paging
 container must use `TEXTURE_VIEW`. The symptom of getting it wrong is a black page with
 working audio.
+
+---
+
 ## D-009 — `DownloadRepositoryImpl` lives in `:core:player`, not `:data`
 
 **Status:** Accepted · 2026-07-27
@@ -281,7 +325,7 @@ wrap, and depend only on `:domain`."
 
 ## D-010 — Downloads cap video bitrate; one catalog source stays large regardless
 
-**Status:** Accepted · 2026-07-27
+**Status:** Accepted · 2026-07-27 · Consequence resolved by D-026
 
 `DownloadRepositoryImpl` passes `TrackSelectionParameters` with `maxVideoBitrate` set to
 1.5 Mbps rather than letting `DownloadHelper` select renditions freely.
@@ -652,7 +696,7 @@ it, per the standing instruction not to change that file without sign-off.
 
 ## D-026 — The catalog drops `tos_ismc`; every stream is now multi-rendition
 
-**Status:** Accepted · 2026-07-29
+**Status:** Accepted · 2026-07-29 · Size corrected by D-028
 
 The eight catalog entries that pointed at `https://test-streams.mux.dev/tos_ismc/main.m3u8`
 now point at `https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8`. This resolves the deferred
@@ -684,7 +728,7 @@ arithmetic from the advertised bandwidths, not measurements.
 
 ## D-027 — Entries reserve the bottom bar's height themselves; the Scaffold does not pad them
 
-**Status:** Accepted · 2026-07-29
+**Status:** Accepted · 2026-07-29 · Caused the regression fixed by D-029
 
 `NavDisplay` was padded with the `Scaffold`'s `innerPadding`, whose bottom component
 includes the navigation bar's height only while that bar is shown. `Player` hides the bar,
@@ -820,7 +864,7 @@ Home → Player → Back round trip.
 
 ## D-030 — The Shorts dot rail is built; the like/share rail moves to the bottom
 
-**Status:** Accepted · 2026-07-29
+**Status:** Accepted · 2026-07-29 · Final paragraph superseded by D-031
 
 The design's page indicator — a column of 7dp dots at the right edge, vertically centred,
 the settled one white and the rest white at 35% — now exists. It was the last piece of
