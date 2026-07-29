@@ -1,8 +1,12 @@
 package io.github.mabrur.streamly.ui.player
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,11 +27,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -84,129 +91,168 @@ fun PlayerControls(
     val duration = progress.durationMs.coerceAtLeast(0L)
     val position = scrubPosition?.toLong() ?: progress.currentPositionMs.coerceAtLeast(0L)
 
-    Box(modifier = modifier.fillMaxSize()) {
-        // White controls over an arbitrary frame are only legible by luck — this video
-        // opens on a bright sky. Two gradients, no full-surface dimming of the picture.
-        Scrim(Alignment.TopCenter, Modifier.align(Alignment.TopCenter))
-        Scrim(Alignment.BottomCenter, Modifier.align(Alignment.BottomCenter))
+    // Auto-hide. Three conditions keep the controls up, and each is a case where hiding
+    // them would strand the user: while paused there would be no way to resume, while
+    // scrubbing the bar would vanish under the finger, and within AUTO_HIDE_MS of the last
+    // touch the user is still working. `touches` exists so a tap that changes none of the
+    // other keys — mute, fullscreen — still restarts the timer.
+    var visible by remember { mutableStateOf(true) }
+    var touches by remember { mutableIntStateOf(0) }
+    val isScrubbing = scrubPosition != null
+    val isPaused = playPause.showPlay
+    val touch = { touches++ }
 
-        OnVideoButton(
-            onClick = onBack,
-            size = 34.dp,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                // Zero when the bars are hidden, so landscape fullscreen is unaffected.
-                .statusBarsPadding()
-                .padding(start = 16.dp, top = 12.dp),
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = Color.White,
-            )
+    LaunchedEffect(visible, isPaused, isScrubbing, touches) {
+        if (visible && !isPaused && !isScrubbing) {
+            delay(AUTO_HIDE_MS)
+            visible = false
         }
+    }
 
-        OnVideoButton(
-            onClick = playPause::onClick,
-            size = 60.dp,
-            enabled = playPause.isEnabled,
-            modifier = Modifier.align(Alignment.Center),
-        ) {
-            if (playPause.showPlay) {
-                Icon(
-                    imageVector = Icons.Filled.PlayArrow,
-                    contentDescription = "Play",
-                    tint = Color.White,
-                    modifier = Modifier.size(30.dp),
-                )
-            } else {
-                // material-icons-core ships no Pause, and pulling in the extended set for
-                // one glyph is not worth ~20MB. The design draws it as two bars anyway.
-                PauseBars(contentDescription = "Pause")
-            }
-        }
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-        ) {
-            // M3's default slider is a 16dp-tall expressive control — far too heavy sitting
-            // on a video. Custom thumb and track give the thin bar players actually use.
-            val fraction = if (duration > 0) position.toFloat() / duration else 0f
-            Slider(
-                value = position.toFloat(),
-                onValueChange = { scrubPosition = it },
-                onValueChangeFinished = {
-                    scrubPosition?.let { player.seekTo(it.toLong()) }
-                    scrubPosition = null
-                },
-                valueRange = 0f..(if (duration > 0) duration.toFloat() else 1f),
-                enabled = duration > 0,
-                modifier = Modifier.height(16.dp),
-                thumb = {
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .clip(CircleShape)
-                            .background(StreamlyColors.Accent),
-                    )
-                },
-                track = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(3.dp)
-                            .clip(CircleShape)
-                            .background(StreamlyColors.OnVideoTrack),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(fraction)
-                                .height(3.dp)
-                                .background(StreamlyColors.Accent),
-                        )
-                    }
-                },
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            // The whole stage is the tap target that brings the controls back. No ripple:
+            // a ripple across the video would be worse than the problem it signals.
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClickLabel = if (visible) "Hide player controls" else "Show player controls",
             ) {
-                Text(
-                    text = "${formatDuration(position)} / ${formatDuration(duration)}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White,
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                visible = !visible
+                touch()
+            },
+    ) {
+        AnimatedVisibility(visible = visible, enter = fadeIn(), exit = fadeOut()) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                // White controls over an arbitrary frame are only legible by luck — this video
+                // opens on a bright sky. Two gradients, no full-surface dimming of the picture.
+                Scrim(Alignment.TopCenter, Modifier.align(Alignment.TopCenter))
+                Scrim(Alignment.BottomCenter, Modifier.align(Alignment.BottomCenter))
+
+                OnVideoButton(
+                    onClick = { touch(); onBack() },
+                    size = 34.dp,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        // Zero when the bars are hidden, so landscape fullscreen is unaffected.
+                        .statusBarsPadding()
+                        .padding(start = 16.dp, top = 12.dp),
                 ) {
-                    // A word rather than a glyph: core has no volume icon, and "Muted"
-                    // is not ambiguous.
-                    Text(
-                        text = if (mute.showMuted) "Muted" else "Mute",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.White,
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(StreamlyColors.OnVideoFill)
-                            .clickable(enabled = mute.isEnabled, onClick = mute::onClick)
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White,
                     )
-                    OnVideoButton(onClick = onToggleFullscreen, size = 34.dp) {
-                        FullscreenGlyph(expand = !isFullscreen)
+                }
+
+                OnVideoButton(
+                    onClick = { touch(); playPause.onClick() },
+                    size = 60.dp,
+                    enabled = playPause.isEnabled,
+                    modifier = Modifier.align(Alignment.Center),
+                ) {
+                    if (playPause.showPlay) {
+                        Icon(
+                            imageVector = Icons.Filled.PlayArrow,
+                            contentDescription = "Play",
+                            tint = Color.White,
+                            modifier = Modifier.size(30.dp),
+                        )
+                    } else {
+                        // material-icons-core ships no Pause, and pulling in the extended set for
+                        // one glyph is not worth ~20MB. The design draws it as two bars anyway.
+                        PauseBars(contentDescription = "Pause")
                     }
                 }
+
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                ) {
+                    // M3's default slider is a 16dp-tall expressive control — far too heavy sitting
+                    // on a video. Custom thumb and track give the thin bar players actually use.
+                    val fraction = if (duration > 0) position.toFloat() / duration else 0f
+                    Slider(
+                        value = position.toFloat(),
+                        onValueChange = { scrubPosition = it },
+                        onValueChangeFinished = {
+                            scrubPosition?.let { player.seekTo(it.toLong()) }
+                            scrubPosition = null
+                            touch()
+                        },
+                        valueRange = 0f..(if (duration > 0) duration.toFloat() else 1f),
+                        enabled = duration > 0,
+                        modifier = Modifier.height(16.dp),
+                        thumb = {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .clip(CircleShape)
+                                    .background(StreamlyColors.Accent),
+                            )
+                        },
+                        track = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(3.dp)
+                                    .clip(CircleShape)
+                                    .background(StreamlyColors.OnVideoTrack),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(fraction)
+                                        .height(3.dp)
+                                        .background(StreamlyColors.Accent),
+                                )
+                            }
+                        },
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = "${formatDuration(position)} / ${formatDuration(duration)}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White,
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            // A word rather than a glyph: core has no volume icon, and "Muted"
+                            // is not ambiguous.
+                            Text(
+                                text = if (mute.showMuted) "Muted" else "Mute",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White,
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(StreamlyColors.OnVideoFill)
+                                    .clickable(enabled = mute.isEnabled) { touch(); mute.onClick() }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                            )
+                            OnVideoButton(onClick = { touch(); onToggleFullscreen() }, size = 34.dp) {
+                                FullscreenGlyph(expand = !isFullscreen)
+                            }
+                        }
+                    }
             }
         }
     }
 }
+}
+
+/** Time with no interaction before the controls fade out, while playing. */
+private const val AUTO_HIDE_MS = 3_000L
 
 /**
  * Four corner brackets — pointing outward to enter fullscreen, inward to leave it.
