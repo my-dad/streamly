@@ -160,7 +160,9 @@ appearing to work correctly (see D-007).
 - **Landscape hides the Player's details rather than laying them out.** Title, actions and
   the up-next list are one rotation away, not on screen. That is the fullscreen convention
   (D-020), not an oversight. The fullscreen button rotates the device to get there (D-022),
-  so on a device with rotation locked in system settings it is the only way in.
+  so on a device with rotation locked in system settings it is the only way in — and the
+  activity handles orientation config changes itself so that request survives the rotation
+  it causes (D-034).
 - The MockEngine fails roughly one request in eight by design, so error states are genuinely
   reachable in the demo. This is deliberate, not a bug.
 - No instrumented tests. Unit tests cover ViewModel intent→state transitions and all display

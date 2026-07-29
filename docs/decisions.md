@@ -1005,3 +1005,43 @@ BipBop entries are a few hundred megabytes and slow to fetch; the one-minute one
 Anyone recording a demo should pick a short entry. `CatalogAssetTest` gained a case pinning
 distinct-stream count and forbidding adjacent duplicates, since every other test in the file
 passed happily while the feed was one clip wearing twelve titles.
+
+---
+
+## D-034 — `MainActivity` handles orientation config changes itself
+
+**Status:** Accepted · 2026-07-29
+
+`MainActivity` declares `android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"`.
+
+**The fullscreen button did not work with auto-rotate enabled** — the case most phones are
+in. D-022 made the button set `requestedOrientation`, which is per-Activity-instance state
+that is never persisted. Without a `configChanges` declaration the rotation it requests
+destroys and recreates the Activity, so the request dies with the instance that made it, and
+the sensor immediately returns a physically-portrait phone to portrait. Measured on the
+emulator: two `relaunch` entries and `configDiffForRecreate={CONFIG_ORIENTATION,
+CONFIG_SCREEN_SIZE, CONFIG_WINDOW_CONFIGURATION}` for one tap, ending back at `ROTATION_0`.
+
+The button destroyed the state it depended on. It only ever appeared to work with rotation
+locked, where the sensor cannot pull the display back — which is the configuration D-022 and
+the README were written against, and why this survived device verification.
+
+Declaring the config changes is the root fix rather than persisting the request across
+recreation: it keeps `requestedOrientation` alive because there is no new instance, and it
+avoids the second source of truth D-022 deliberately refused. Compose reads configuration
+through `LocalConfiguration`, and `calculateWindowSizeClass` recomposes from it, so
+`isFullscreen` still derives from window height with nothing added.
+
+**Verified on the emulator with auto-rotate on**, portrait: tapping fullscreen goes to
+`ROTATION_90` with the system bars hidden; tapping it again returns to `ROTATION_0`;
+playback runs continuously across both (0:41 → 1:07, no release); leaving the Player releases
+the lock, so Home rotates freely again.
+
+**Regressions checked, since this changes rotation handling app-wide:** the Home feed's
+scroll survives a Player round trip unchanged (D-027), Shorts keeps its settled page across a
+rotation, and no `ExoPlayer` release is logged for a rotation — the player is no longer even
+at risk from recreation, which strengthens rather than weakens D-022's guarantee.
+
+**Consequence:** the app now owns configuration changes. Anything that relied on Activity
+recreation to pick up a new configuration — resource reloading outside Compose, say — would
+need to observe `LocalConfiguration` instead. Nothing in the app does today.
