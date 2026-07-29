@@ -70,6 +70,12 @@ fun PlayerScreen(
 
         // The button rotates the device rather than inventing a second fullscreen state:
         // landscape already *is* fullscreen, so one concept covers both entry paths.
+        //
+        // This only holds because MainActivity declares `configChanges` for orientation.
+        // `requestedOrientation` is per-Activity-instance state that is never persisted, so
+        // without that declaration the rotation this triggers destroys the Activity holding
+        // the request — and with auto-rotate on, the sensor immediately turns a physically
+        // portrait phone back. See D-034.
         val onToggleFullscreen = {
             activity?.requestedOrientation = if (isFullscreen) {
                 ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT
