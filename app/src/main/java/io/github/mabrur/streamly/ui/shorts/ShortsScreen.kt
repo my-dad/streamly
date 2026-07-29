@@ -66,18 +66,61 @@ fun ShortsScreen(
                 .collect { onIntent(ShortsIntent.PageSettled(it)) }
         }
 
-        VerticalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxSize(),
-            key = { shorts[it].id },
-            // Pinned explicitly. The default would instantiate surfaces for off-screen
-            // pages and quietly break the "at most two players" guarantee.
-            beyondViewportPageCount = 0,
-        ) { page ->
-            ShortPage(
-                short = shorts[page],
-                player = playerForPage(page),
-                isSettled = page == state.settledIndex,
+        Box(modifier = Modifier.fillMaxSize()) {
+            VerticalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+                key = { shorts[it].id },
+                // Pinned explicitly. The default would instantiate surfaces for off-screen
+                // pages and quietly break the "at most two players" guarantee.
+                beyondViewportPageCount = 0,
+            ) { page ->
+                ShortPage(
+                    short = shorts[page],
+                    player = playerForPage(page),
+                    isSettled = page == state.settledIndex,
+                )
+            }
+
+            // Outside the pager, like the design has it: one rail for the whole feed
+            // rather than a copy riding on every page.
+            DotRail(
+                count = shorts.size,
+                activeIndex = state.settledIndex,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 8.dp),
+            )
+        }
+    }
+}
+
+/**
+ * The design's page indicator. Read-only, like [PlayingBadge]: a 7dp dot is a quarter of
+ * the minimum touch target, and the pager is already driven by the swipe it describes.
+ */
+@Composable
+private fun DotRail(
+    count: Int,
+    activeIndex: Int,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        repeat(count) { index ->
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (index == activeIndex) {
+                            Color.White
+                        } else {
+                            Color.White.copy(alpha = 0.35f)
+                        },
+                    ),
             )
         }
     }
@@ -169,11 +212,13 @@ private fun ShortPage(
             )
         }
 
-        // Stubs, explicitly permitted by the PRD.
+        // Stubs, explicitly permitted by the PRD. Bottom-aligned, per the design and to
+        // clear the dot rail, which the design puts at the vertical centre. The caption
+        // beside it already reserves the width this needs.
         Column(
             modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 12.dp),
+                .align(Alignment.BottomEnd)
+                .padding(end = 12.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {

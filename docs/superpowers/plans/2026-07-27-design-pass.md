@@ -831,8 +831,10 @@ structural constraint.
   - [x] Shorts "Playing" badge renders with its dot.
   - [x] The accent headers on Home and Profile paint *behind* the status bar rather than
         colliding with it — this is what the `contentWindowInsets` change in Task 4 fixed.
-  - [ ] **Not verified — the dot rail was not built.** See the Task 5 deviations: the design
-        places it exactly where the like/share rail sits.
+  - [x] **Dot rail — built and verified 2026-07-29** on a Pixel 6 Pro. The collision noted
+        here was self-inflicted: the design puts the like/share rail at the bottom, not the
+        centre. Rail moved, dots added, both verified tracking `settledIndex` across a swipe.
+        See D-030, including the legibility caveat over pale video.
   - [ ] **Not verified — notched device.** The emulator has no cutout. `statusBarsPadding()`
         is inset-driven rather than a fixed value, so it should follow a cutout, but that is
         reasoning, not observation.
