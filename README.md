@@ -179,10 +179,11 @@ This list grows as features land; it currently covers what is built.
   neither changed the behaviour, so both were reverted rather than left as unmotivated churn.
 - `compileSdk` is 37 while `targetSdk` stays 36 — forced by AAR metadata on several AndroidX
   dependencies. See D-011.
-- **Eight of the eighteen catalog videos are ~500 MB to download.** They point at a test
-  stream that publishes exactly one rendition (1080p, 6.3 Mbps, ~10 min), so the bitrate cap
-  in D-010 cannot shrink them. The other ten download at roughly 130 MB. Repointing those
-  eight at a multi-rendition source is a catalog change, deliberately deferred.
+- **Every catalog stream is multi-rendition, so the download bitrate cap governs all of
+  them.** Eight entries used to point at a single-rendition source that no track selection
+  could shrink, and downloaded at roughly half a gigabyte each; they were repointed (D-026).
+  The download sizes that follow from that are arithmetic off the advertised bandwidths — no
+  download has been run against the repointed catalog on a device.
 - **The download foreground-service manifest cannot be verified here.** `foregroundServiceType`
   and `FOREGROUND_SERVICE_DATA_SYNC` are only enforced from API 34, and the emulator used
   throughout is API 33. Both are declared and confirmed present in the merged manifest, but

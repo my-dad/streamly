@@ -647,3 +647,35 @@ that can fail pass it exactly as before.
 checking that mechanically will find one exception. This entry is the answer. The rule should
 probably read "every UiState that can fail" — proposed for AGENTS.md rather than edited into
 it, per the standing instruction not to change that file without sign-off.
+
+---
+
+## D-026 — The catalog drops `tos_ismc`; every stream is now multi-rendition
+
+**Status:** Accepted · 2026-07-29
+
+The eight catalog entries that pointed at `https://test-streams.mux.dev/tos_ismc/main.m3u8`
+now point at `https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8`. This resolves the deferred
+item named in D-010's consequence; D-010's bitrate cap itself is unchanged and still stands.
+
+`tos_ismc` publishes exactly one rendition — 1920x800, ~6.3 Mbps, ~12 minutes — so the
+1.5 Mbps cap in `DownloadRepositoryImpl` had nothing smaller to fall back to and those eight
+downloaded at roughly half a gigabyte each. `x36xhzz` publishes five renditions from
+246 kbps (320x184) to 6.2 Mbps (1080p); the cap selects the 836 kbps 848x480 variant, which
+is what the other ten entries were already getting.
+
+Every URL in the catalog is now multi-rendition, so the cap governs all eighteen and the
+"one source no track selection can shrink" exception is gone.
+
+The catalog now serves two distinct streams across eighteen entries rather than three.
+That was judged acceptable: which clip plays behind a card is cosmetic — the thumbnails are
+seeded per id and differ — and adding a fourth CDN to preserve variety is a dependency taken
+for appearances.
+
+`v02` was retitled from "Tears of Steel — Full Short Film" (Blender Studio) to "Inside a
+Rendering Pipeline" (Bitrate Weekly). It was the one entry whose title named the actual
+content of the stream behind it, and that stream is no longer there.
+
+**Not verified on a device.** The manifest was fetched and its renditions read directly, but
+no download has been run against the repointed catalog. The download sizes above are
+arithmetic from the advertised bandwidths, not measurements.
