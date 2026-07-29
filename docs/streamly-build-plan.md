@@ -345,6 +345,34 @@ the device, not through the MockEngine, so there is no latency to catch it in. N
 and cannot render. That is correct: a video detail or a profile that loaded successfully is
 never meaningfully "empty". Recorded so the gap reads as a decision rather than an oversight.
 
+### Task 8.1 — re-run on a physical device (2026-07-29)
+
+The sweep above ran on the API 33 emulator. It was re-run in full on a physical Pixel 6 Pro
+(Android 17 / API 37) after the D-027 navigation-padding fix, since that fix changed how
+every top-level screen is measured and these states are exactly what a bad reservation would
+break. Same three throwaway builds, same knobs, sources restored and `git status` clean
+before the real APK went back on.
+
+| Screen | Loading | Empty | Error |
+|---|---|---|---|
+| Home | ✅ spinner, app bar kept | ✅ "Nothing here yet", chips still shown | ✅ "No connection" + Retry |
+| Shorts | ✅ spinner | ✅ "Nothing here yet" | ✅ "No connection" + Retry |
+| Player | ✅ spinner, full height, no bar | n/a — no `isEmpty` predicate | ✅ "No connection" + Retry |
+| Downloads | ⚠️ not observable, as before | ✅ reached for real by removing the download, header `0 B used` | n/a — field dropped, D-025 |
+| Profile | ✅ spinner | n/a — no `isEmpty` predicate | ✅ "No connection" + Retry |
+
+Two things this run establishes that the emulator run did not:
+
+- **Retry was proven to recover, not just to render.** With `failEveryNth = 2` the Player's
+  detail fetch fails on request 2; tapping Retry issued request 3, which succeeded, and the
+  screen went from "No connection" to a playing video. The earlier sweep only recorded that
+  the button appeared and was tappable on Home.
+- **Downloads' empty state was reached without editing anything** — it is what Remove leaves
+  behind, confirmed in the same session as D-028's download run.
+
+Every state still renders correctly above the bottom bar after D-027, which is the
+regression this re-run was really looking for. No behaviour differed from the API 33 results.
+
 - [ ] **8.9** Record the 2–4 min demo covering all seven screens, **ending with** download → real progress → airplane mode → offline playback.
 - [ ] **8.10** *(optional, only if time survives)* GitHub Actions `build + test`.
 
