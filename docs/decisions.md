@@ -920,3 +920,42 @@ all six dots read clearly, including the five inactive ones at 35% white.
 
 D-030 stands otherwise: the rail is built, read-only, outside the pager, keyed on
 `settledIndex`. Only its final paragraph is overtaken by this entry.
+
+---
+
+## D-032 — The Player's controls auto-hide
+
+**Status:** Accepted · 2026-07-29 · Reverses the auto-hide position in D-020 and D-021
+
+D-020 and D-021 both stated the controls would not auto-hide: "a timer is more code, and
+less discoverable". That was the wrong trade and it is now reversed. The controls fade out
+after three seconds and a tap anywhere on the stage brings them back.
+
+The argument that they are "less discoverable" hidden holds only if the user cannot find
+them again. Tapping the video is the gesture every video app trains, and the whole stage is
+the target. Against that, the standing cost was permanent: the bottom of every frame was
+covered by a seek bar and a time label, in both orientations, for the entire duration of
+playback — which the README carried as a known limitation for that reason.
+
+**Three conditions keep the controls up**, each a case where hiding them would strand
+someone:
+
+- **while paused** — there would be no way to resume, and the play button is the whole
+  affordance;
+- **while scrubbing** — the bar would vanish under the finger mid-drag;
+- **within three seconds of any touch**, including mute and fullscreen, which change none
+  of the other conditions. A `touches` counter exists solely so those two restart the timer.
+
+`AnimatedVisibility` rather than `alpha`: it removes the controls from composition, so a
+screen reader is not offered a Back button and a scrubber that are invisible. The tap target
+that restores them carries its own `onClickLabel`, and uses `indication = null` — a ripple
+spreading across the video would be worse than the state it signals.
+
+**Verified on the API 33 emulator**, all four cases via the accessibility tree: hidden after
+three seconds of playback; restored by a tap; still up eight seconds after pausing, with
+`Play` and the timestamp present; hidden again six seconds after resuming.
+
+**Consequence:** the back arrow goes with them. That is the same convention every player
+follows, the system back gesture is unaffected, and one tap brings it back. The measurement
+in D-023 — the video lingering after a pop — is untouched, since nothing here changes the
+surface.
